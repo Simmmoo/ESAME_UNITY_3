@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 2
+  tags:
+  - Music
+  - Snack
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - Ground
+  - Wall
+  - Object
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  - name: Background
+    uniqueID: 1077115459
+    locked: 0
+  - name: Background_tubes
+    uniqueID: 4003577787
+    locked: 0
+  - name: Background_chains
+    uniqueID: 3543971195
+    locked: 0
+  - name: Wall_Background
+    uniqueID: 3635092795
+    locked: 0
+  - name: Player
+    uniqueID: 3886960587
+    locked: 0
+  - name: Snack
+    uniqueID: 611118121
+    locked: 0
+  - name: Floor
+    uniqueID: 2988617393
+    locked: 0
+  - name: Object
+    uniqueID: 827020869
+    locked: 0
+  - name: Wall
+    uniqueID: 2484212551
+    locked: 0
+  - name: Water
+    uniqueID: 942976609
+    locked: 0
+  - name: Decorations
+    uniqueID: 139234205
+    locked: 0

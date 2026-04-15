@@ -1,0 +1,12 @@
+fileFormatVersion: 2
+guid: 1d14be8739d5861438dfd41045693351
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - SnackParticlesPrefab: {fileID: 8885175873259158447, guid: 4198c44de8ab2ff438fa8ea94b1aaf52, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
