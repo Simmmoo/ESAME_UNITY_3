@@ -1,13 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
 
 public class PlayerController : MonoBehaviour
 {
     private Rigidbody2D rb;
     private Animator anim;
     private float horizontalInput;
+
+    // --- NUOVE VARIABILI PER MOBILE ---
+    private float mobileHorizontalInput;
+    private bool mobileJumpPressed;
+    // ----------------------------------
 
     [Header("Movimento")]
     [SerializeField] private float speed;
@@ -31,11 +35,11 @@ public class PlayerController : MonoBehaviour
     [Header("Object Check")]
     public float objectCheckDistance;
     public bool isObjectDetected;
-    public LayerMask pushableLayer; // Layer per gli oggetti spostabili
+    public LayerMask pushableLayer;
 
     [Header("Push Mechanics")]
     public bool isPushing;
-    private GameObject objectToPush; // Oggetto da spostare
+    private GameObject objectToPush;
 
     private int FacingDirection = 1;
     private bool FacingRight = true;
@@ -51,19 +55,20 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-
     }
 
     private void Awake()
     {
         anim = GetComponentInChildren<Animator>();
         myRend = GetComponentInChildren<SpriteRenderer>();
-
     }
 
     void Update()
     {
-        horizontalInput = Input.GetAxisRaw("Horizontal");
+        // LOGICA IBRIDA: Tastiera + Mobile
+        float keyboardInput = Input.GetAxisRaw("Horizontal");
+        horizontalInput = (keyboardInput != 0) ? keyboardInput : mobileHorizontalInput;
+
         Flip();
         HandleMovement();
         CheckGroundAndWall();
@@ -71,7 +76,8 @@ public class PlayerController : MonoBehaviour
         HandleJump();
         HandleAnimation();
 
-        if (Input.GetKeyDown(KeyCode.E) && isObjectDetected)
+        // Se rileva un oggetto mentre cammini, prova a spingerlo (ottimo per mobile)
+        if (isObjectDetected && horizontalInput != 0 && !isPushing)
         {
             PushObject();
         }
@@ -81,6 +87,12 @@ public class PlayerController : MonoBehaviour
             PlayMeow();
         }
     }
+
+    // --- FUNZIONI PUBBLICHE PER MOBILE ---
+    public void MobileMove(float direction) => mobileHorizontalInput = direction;
+    public void MobileJump() => mobileJumpPressed = true;
+    public void MobileMeow() => PlayMeow();
+    // -------------------------------------
 
     void Flip()
     {
@@ -98,7 +110,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-
     void HandleMovement()
     {
         if (isGrabbingWall)
@@ -115,23 +126,22 @@ public class PlayerController : MonoBehaviour
 
     void HandleJump()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space) || mobileJumpPressed)
         {
             if (isGrounded)
             {
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-                PlayJumpSound(); // Suono del salto normale
+                PlayJumpSound();
             }
             else if (isGrabbingWall)
             {
                 isGrabbingWall = false;
-
                 rb.gravityScale = 1;
-
                 int jumpDirection = -FacingDirection;
                 rb.linearVelocity = new Vector2(jumpDirection * wallJumpHorizontalForce, wallJumpForce);
-                PlayJumpSound(); // Suono anche per wall jump
+                PlayJumpSound();
             }
+            mobileJumpPressed = false; // Reset input mobile
         }
     }
 
@@ -139,7 +149,9 @@ public class PlayerController : MonoBehaviour
     {
         isGrounded = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, whatIsGround | pushableLayer);
         isWallDetected = Physics2D.Raycast(transform.position, Vector2.right * FacingDirection, wallCheckDistance, wallLayer);
-        isGrabbingWall = isWallDetected && !isGrounded && (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D));
+
+        // Accetta input sia da tastiera che da touch per il wall grab
+        isGrabbingWall = isWallDetected && !isGrounded && (horizontalInput != 0);
     }
 
     void CheckForPushableObject()
@@ -148,19 +160,11 @@ public class PlayerController : MonoBehaviour
             new Vector2(transform.position.x, transform.position.y - 0.2f),
             Vector2.right * FacingDirection,
             objectCheckDistance,
-            pushableLayer // Controlla solo il Layer "PushableObjects"
+            pushableLayer
         );
 
         isObjectDetected = hit.collider != null;
-
-        if (isObjectDetected)
-        {
-            objectToPush = hit.collider.gameObject;
-        }
-        else
-        {
-            objectToPush = null;
-        }
+        objectToPush = isObjectDetected ? hit.collider.gameObject : null;
     }
 
     void PushObject()
@@ -168,42 +172,36 @@ public class PlayerController : MonoBehaviour
         if (objectToPush != null)
         {
             isPushing = true;
-
             if (audioSource != null && pushSound != null)
             {
                 audioSource.PlayOneShot(pushSound);
             }
-
             StartCoroutine(MoveObject(objectToPush, FacingDirection));
         }
     }
 
-
     IEnumerator MoveObject(GameObject obj, int direction)
     {
-        float duration = 0.2f; // Tempo in secondi per completare lo spostamento
-        float elapsedTime = 0f; // Tempo trascorso dall'inizio del movimento
-
-        Vector3 startPos = obj.transform.position; // Posizione iniziale
-        Vector3 targetPos = startPos + new Vector3(direction, 0, 0); // Posizione finale (sposta di 1 metro)
+        float duration = 0.2f;
+        float elapsedTime = 0f;
+        Vector3 startPos = obj.transform.position;
+        Vector3 targetPos = startPos + new Vector3(direction, 0, 0);
 
         while (elapsedTime < duration)
         {
-            // Interpola la posizione tra startPos e targetPos in base al tempo trascorso
+            if (obj == null) yield break; // Sicurezza se l'oggetto viene distrutto
             obj.transform.position = Vector3.Lerp(startPos, targetPos, elapsedTime / duration);
-
-            elapsedTime += Time.deltaTime; // Aggiunge il tempo trascorso in questo frame
-            yield return null; // Aspetta il frame successivo prima di continuare
+            elapsedTime += Time.deltaTime;
+            yield return null;
         }
 
-        obj.transform.position = targetPos; // Assicura che l'oggetto arrivi esattamente alla posizione finale
+        if (obj != null) obj.transform.position = targetPos;
         isPushing = false;
     }
 
-
-
     void HandleAnimation()
     {
+        if (anim == null) return;
         anim.SetFloat("xVelocity", Mathf.Abs(rb.linearVelocity.x));
         anim.SetBool("IsGrounded", isGrounded);
         anim.SetFloat("yVelocity", rb.linearVelocity.y);
@@ -211,63 +209,34 @@ public class PlayerController : MonoBehaviour
         anim.SetBool("IsPushing", isPushing);
     }
 
-    private void OnDrawGizmos()
-    {
-        // Linea per il controllo del terreno
-        Gizmos.color = Color.red;
-        isGrounded = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, whatIsGround) ||
-             Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, pushableLayer);
-
-
-        // Linea per il controllo della parete
-        Gizmos.color = Color.blue;
-        Gizmos.DrawLine(transform.position, new Vector2(transform.position.x + wallCheckDistance * FacingDirection, transform.position.y));
-
-        // Linea per il controllo degli oggetti
-        Gizmos.color = Color.green;
-        Vector2 startPosition = new Vector2(transform.position.x, transform.position.y - 0.2f);
-        Vector2 endPosition = new Vector2(transform.position.x + objectCheckDistance * FacingDirection, transform.position.y - 0.2f);
-        Gizmos.DrawLine(startPosition, endPosition);
-    }
-
-    public void Die()
-    {
-        Destroy(gameObject);
-    }
+    public void Die() => Destroy(gameObject);
 
     void PlayJumpSound()
     {
         if (audioSource != null && jumpSound != null)
-        {
             audioSource.PlayOneShot(jumpSound);
-        }
+    }
+
+    void PlayMeow()
+    {
+        if (audioSource != null && meow != null)
+            audioSource.PlayOneShot(meow);
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Snack"))
         {
-            AddSnacks snackScript = collision.GetComponent<AddSnacks>();
-            if (snackScript != null)
-            {
-                PlaySnackCollectSound();
-            }
+            if (audioSource != null && snackCollectSound != null)
+                audioSource.PlayOneShot(snackCollectSound);
         }
     }
 
-    private void PlaySnackCollectSound()
+    private void OnDrawGizmos()
     {
-        if (audioSource != null && snackCollectSound != null)
-        {
-            audioSource.PlayOneShot(snackCollectSound); 
-        }
-    }
-
-    void PlayMeow()
-    {
-        if (audioSource != null && meow != null)
-        {
-            audioSource.PlayOneShot(meow);
-        }
+        Gizmos.color = Color.red;
+        Gizmos.DrawRay(transform.position, Vector2.down * groundCheckDistance);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawRay(transform.position, Vector2.right * FacingDirection * wallCheckDistance);
     }
 }
