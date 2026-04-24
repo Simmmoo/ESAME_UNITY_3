@@ -1,13 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.InputSystem; 
 
 public class PlayerController : MonoBehaviour
 {
     private Rigidbody2D rb;
     private Animator anim;
     private float horizontalInput;
+    private bool isPressingLeft;
+    private bool isPressingRight;
+
+    private CatInputs controls; // Riferimento al nuovo sistema
 
     [Header("Movimento")]
     [SerializeField] private float speed;
@@ -31,13 +35,13 @@ public class PlayerController : MonoBehaviour
     [Header("Object Check")]
     public float objectCheckDistance;
     public bool isObjectDetected;
-    public LayerMask pushableLayer; // Layer per gli oggetti spostabili
+    public LayerMask pushableLayer;
 
-    [Header("Push Mechanics")]
+    [Header("Push Mechanics")]
     public bool isPushing;
-    private GameObject objectToPush; // Oggetto da spostare
+    private GameObject objectToPush;
 
-    private int FacingDirection = 1;
+    private int FacingDirection = 1;
     private bool FacingRight = true;
     private SpriteRenderer myRend;
 
@@ -48,22 +52,33 @@ public class PlayerController : MonoBehaviour
     public AudioClip snackCollectSound;
     public AudioClip meow;
 
-    void Start()
-    {
-        rb = GetComponent<Rigidbody2D>();
-
-    }
-
     private void Awake()
     {
+        controls = new CatInputs(); // Inizializza i controlli
+        rb = GetComponent<Rigidbody2D>();
         anim = GetComponentInChildren<Animator>();
         myRend = GetComponentInChildren<SpriteRenderer>();
-
     }
+
+    // Abilita/Disabilita i controlli con l'oggetto
+    private void OnEnable() => controls.Enable();
+    private void OnDisable() => controls.Disable();
 
     void Update()
     {
-        horizontalInput = Input.GetAxisRaw("Horizontal");
+        var keyboard = Keyboard.current;
+
+        if (keyboard != null)
+        {
+            isPressingLeft = keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed;
+            isPressingRight = keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed;
+        }
+
+        if (isPressingLeft && isPressingRight) horizontalInput = 0;
+        else if (isPressingLeft) horizontalInput = -1;
+        else if (isPressingRight) horizontalInput = 1;
+        else horizontalInput = 0;
+
         Flip();
         HandleMovement();
         CheckGroundAndWall();
@@ -71,14 +86,42 @@ public class PlayerController : MonoBehaviour
         HandleJump();
         HandleAnimation();
 
-        if (Input.GetKeyDown(KeyCode.E) && isObjectDetected)
+        // NUOVA LOGICA DI SPINTA AUTOMATICA
+        // Se rileva un oggetto, non sta già spingendo e il giocatore preme verso l'oggetto
+        if (isObjectDetected && !isPushing && horizontalInput != 0)
         {
-            PushObject();
+            // Verifichiamo che la direzione dell'input sia la stessa di FacingDirection
+            // (ovvero che stia camminando "dentro" la scatola)
+            if ((horizontalInput > 0 && FacingDirection == 1) || (horizontalInput < 0 && FacingDirection == -1))
+            {
+                PushObject();
+            }
         }
 
-        if (Input.GetKeyDown(KeyCode.M))
+        if (controls.Player.Meow.triggered)
         {
             PlayMeow();
+        }
+    }
+
+    void HandleJump()
+    {
+        // Jump.triggered è vero nel frame in cui premi il tasto/fai lo swipe
+        if (controls.Player.Jump.triggered)
+        {
+            if (isGrounded)
+            {
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+                PlayJumpSound();
+            }
+            else if (isGrabbingWall)
+            {
+                isGrabbingWall = false;
+                rb.gravityScale = 1;
+                int jumpDirection = -FacingDirection;
+                rb.linearVelocity = new Vector2(jumpDirection * wallJumpHorizontalForce, wallJumpForce);
+                PlayJumpSound();
+            }
         }
     }
 
@@ -98,7 +141,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-
     void HandleMovement()
     {
         if (isGrabbingWall)
@@ -113,54 +155,24 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void HandleJump()
-    {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            if (isGrounded)
-            {
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-                PlayJumpSound(); // Suono del salto normale
-            }
-            else if (isGrabbingWall)
-            {
-                isGrabbingWall = false;
-
-                rb.gravityScale = 1;
-
-                int jumpDirection = -FacingDirection;
-                rb.linearVelocity = new Vector2(jumpDirection * wallJumpHorizontalForce, wallJumpForce);
-                PlayJumpSound(); // Suono anche per wall jump
-            }
-        }
-    }
-
     void CheckGroundAndWall()
     {
         isGrounded = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, whatIsGround | pushableLayer);
+
+        // Il gatto guarda avanti in base alla direzione attuale
         isWallDetected = Physics2D.Raycast(transform.position, Vector2.right * FacingDirection, wallCheckDistance, wallLayer);
-        isGrabbingWall = isWallDetected && !isGrounded && (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D));
+
+        // RIMANI AGGRAPPATO se rilevi il muro E se stai premendo ALMENO uno dei due tasti.
+        // In questo modo, nel momento in cui passi da A a D premendoli insieme, 
+        // isGrabbingWall rimane sempre TRUE e non cadi.
+        isGrabbingWall = isWallDetected && !isGrounded && (isPressingLeft || isPressingRight);
     }
 
     void CheckForPushableObject()
     {
-        RaycastHit2D hit = Physics2D.Raycast(
-          new Vector2(transform.position.x, transform.position.y - 0.2f),
-          Vector2.right * FacingDirection,
-          objectCheckDistance,
-          pushableLayer // Controlla solo il Layer "PushableObjects"
-            );
-
+        RaycastHit2D hit = Physics2D.Raycast(new Vector2(transform.position.x, transform.position.y - 0.2f), Vector2.right * FacingDirection, objectCheckDistance, pushableLayer);
         isObjectDetected = hit.collider != null;
-
-        if (isObjectDetected)
-        {
-            objectToPush = hit.collider.gameObject;
-        }
-        else
-        {
-            objectToPush = null;
-        }
+        objectToPush = isObjectDetected ? hit.collider.gameObject : null;
     }
 
     void PushObject()
@@ -168,39 +180,27 @@ public class PlayerController : MonoBehaviour
         if (objectToPush != null)
         {
             isPushing = true;
-
-            if (audioSource != null && pushSound != null)
-            {
-                audioSource.PlayOneShot(pushSound);
-            }
-
+            if (audioSource != null && pushSound != null) audioSource.PlayOneShot(pushSound);
             StartCoroutine(MoveObject(objectToPush, FacingDirection));
         }
     }
 
-
     IEnumerator MoveObject(GameObject obj, int direction)
     {
-        float duration = 0.2f; // Tempo in secondi per completare lo spostamento
-        float elapsedTime = 0f; // Tempo trascorso dall'inizio del movimento
-
-        Vector3 startPos = obj.transform.position; // Posizione iniziale
-        Vector3 targetPos = startPos + new Vector3(direction, 0, 0); // Posizione finale (sposta di 1 metro)
-
-        while (elapsedTime < duration)
+        float duration = 0.2f;
+        float elapsedTime = 0f;
+        Vector3 startPos = obj.transform.position;
+        Vector3 targetPos = startPos + new Vector3(direction, 0, 0);
+        while (elapsedTime < duration)
         {
-            // Interpola la posizione tra startPos e targetPos in base al tempo trascorso
-            obj.transform.position = Vector3.Lerp(startPos, targetPos, elapsedTime / duration);
-
-            elapsedTime += Time.deltaTime; // Aggiunge il tempo trascorso in questo frame
-            yield return null; // Aspetta il frame successivo prima di continuare
-        }
-
-        obj.transform.position = targetPos; // Assicura che l'oggetto arrivi esattamente alla posizione finale
-        isPushing = false;
+            if (obj == null) yield break;
+            obj.transform.position = Vector3.Lerp(startPos, targetPos, elapsedTime / duration);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+        if (obj != null) obj.transform.position = targetPos;
+        isPushing = false;
     }
-
-
 
     void HandleAnimation()
     {
@@ -211,63 +211,34 @@ public class PlayerController : MonoBehaviour
         anim.SetBool("IsPushing", isPushing);
     }
 
-    private void OnDrawGizmos()
-    {
-        // Linea per il controllo del terreno
-        Gizmos.color = Color.red;
-        isGrounded = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, whatIsGround) ||
-          Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, pushableLayer);
+    public void Die() => Destroy(gameObject);
 
-
-        // Linea per il controllo della parete
-        Gizmos.color = Color.blue;
-        Gizmos.DrawLine(transform.position, new Vector2(transform.position.x + wallCheckDistance * FacingDirection, transform.position.y));
-
-        // Linea per il controllo degli oggetti
-        Gizmos.color = Color.green;
-        Vector2 startPosition = new Vector2(transform.position.x, transform.position.y - 0.2f);
-        Vector2 endPosition = new Vector2(transform.position.x + objectCheckDistance * FacingDirection, transform.position.y - 0.2f);
-        Gizmos.DrawLine(startPosition, endPosition);
-    }
-
-    public void Die()
-    {
-        Destroy(gameObject);
-    }
-
-    void PlayJumpSound()
-    {
-        if (audioSource != null && jumpSound != null)
-        {
-            audioSource.PlayOneShot(jumpSound);
-        }
-    }
+    void PlayJumpSound() { if (audioSource != null && jumpSound != null) audioSource.PlayOneShot(jumpSound); }
+    void PlayMeow() { if (audioSource != null && meow != null) audioSource.PlayOneShot(meow); }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Snack"))
         {
-            AddSnacks snackScript = collision.GetComponent<AddSnacks>();
-            if (snackScript != null)
-            {
-                PlaySnackCollectSound();
-            }
+            if (audioSource != null && snackCollectSound != null) audioSource.PlayOneShot(snackCollectSound);
         }
     }
 
-    private void PlaySnackCollectSound()
+    public void MobileJump()
     {
-        if (audioSource != null && snackCollectSound != null)
+        // Questa funzione simula la pressione del tasto Jump del nuovo Input System
+        if (isGrounded)
         {
-            audioSource.PlayOneShot(snackCollectSound);
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            PlayJumpSound();
         }
-    }
-
-    void PlayMeow()
-    {
-        if (audioSource != null && meow != null)
+        else if (isGrabbingWall)
         {
-            audioSource.PlayOneShot(meow);
+            isGrabbingWall = false;
+            rb.gravityScale = 1;
+            int jumpDirection = -FacingDirection;
+            rb.linearVelocity = new Vector2(jumpDirection * wallJumpHorizontalForce, wallJumpForce);
+            PlayJumpSound();
         }
     }
 }
