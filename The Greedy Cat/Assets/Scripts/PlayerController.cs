@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -52,9 +53,10 @@ public class PlayerController : MonoBehaviour
     public AudioClip snackCollectSound;
     public AudioClip meow;
 
+
     private void Awake()
     {
-        controls = new CatInputs(); // Inizializza i controlli
+        controls = new CatInputs(); 
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponentInChildren<Animator>();
         myRend = GetComponentInChildren<SpriteRenderer>();
@@ -63,6 +65,8 @@ public class PlayerController : MonoBehaviour
     // Abilita/Disabilita i controlli con l'oggetto
     private void OnEnable() => controls.Enable();
     private void OnDisable() => controls.Disable();
+
+
 
     void Update()
     {
@@ -86,8 +90,7 @@ public class PlayerController : MonoBehaviour
         HandleJump();
         HandleAnimation();
 
-        // NUOVA LOGICA DI SPINTA AUTOMATICA
-        // Se rileva un oggetto, non sta già spingendo e il giocatore preme verso l'oggetto
+        // SPINTA AUTOMATICA
         if (isObjectDetected && !isPushing && horizontalInput != 0)
         {
             // Verifichiamo che la direzione dell'input sia la stessa di FacingDirection
@@ -162,9 +165,8 @@ public class PlayerController : MonoBehaviour
         // Il gatto guarda avanti in base alla direzione attuale
         isWallDetected = Physics2D.Raycast(transform.position, Vector2.right * FacingDirection, wallCheckDistance, wallLayer);
 
-        // RIMANI AGGRAPPATO se rilevi il muro E se stai premendo ALMENO uno dei due tasti.
-        // In questo modo, nel momento in cui passi da A a D premendoli insieme, 
-        // isGrabbingWall rimane sempre TRUE e non cadi.
+        // RIMANI AGGRAPPATO se rilevi il muro E se stai premendo ALMENO uno dei due tasti 
+        // isGrabbingWall rimane sempre TRUE e non cadi
         isGrabbingWall = isWallDetected && !isGrounded && (isPressingLeft || isPressingRight);
     }
 
@@ -226,7 +228,7 @@ public class PlayerController : MonoBehaviour
 
     public void MobileJump()
     {
-        // Questa funzione simula la pressione del tasto Jump del nuovo Input System
+        // simula la pressione del tasto Jump del nuovo Input System
         if (isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);

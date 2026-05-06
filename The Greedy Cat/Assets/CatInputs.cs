@@ -127,6 +127,15 @@ public partial class @CatInputs: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""New action1"",
+                    ""type"": ""Value"",
+                    ""id"": ""a5b2a574-d567-4b1b-ae9f-55bcd1a16a42"",
+                    ""expectedControlType"": ""Delta"",
+                    ""processors"": """",
+                    ""interactions"": ""Press(behavior=1)"",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -228,6 +237,17 @@ public partial class @CatInputs: IInputActionCollection2, IDisposable
                     ""action"": ""Meow"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""6ce9cb2a-7dbc-47e7-9edf-b79351a3764c"",
+                    ""path"": ""<Touchscreen>/delta"",
+                    ""interactions"": ""Hold"",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""New action1"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -240,6 +260,7 @@ public partial class @CatInputs: IInputActionCollection2, IDisposable
         m_Player_Move = m_Player.FindAction("Move", throwIfNotFound: true);
         m_Player_Jump = m_Player.FindAction("Jump", throwIfNotFound: true);
         m_Player_Meow = m_Player.FindAction("Meow", throwIfNotFound: true);
+        m_Player_Newaction1 = m_Player.FindAction("New action1", throwIfNotFound: true);
     }
 
     ~@CatInputs()
@@ -324,6 +345,7 @@ public partial class @CatInputs: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Move;
     private readonly InputAction m_Player_Jump;
     private readonly InputAction m_Player_Meow;
+    private readonly InputAction m_Player_Newaction1;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -351,6 +373,10 @@ public partial class @CatInputs: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/Meow".
         /// </summary>
         public InputAction @Meow => m_Wrapper.m_Player_Meow;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/Newaction1".
+        /// </summary>
+        public InputAction @Newaction1 => m_Wrapper.m_Player_Newaction1;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -389,6 +415,9 @@ public partial class @CatInputs: IInputActionCollection2, IDisposable
             @Meow.started += instance.OnMeow;
             @Meow.performed += instance.OnMeow;
             @Meow.canceled += instance.OnMeow;
+            @Newaction1.started += instance.OnNewaction1;
+            @Newaction1.performed += instance.OnNewaction1;
+            @Newaction1.canceled += instance.OnNewaction1;
         }
 
         /// <summary>
@@ -412,6 +441,9 @@ public partial class @CatInputs: IInputActionCollection2, IDisposable
             @Meow.started -= instance.OnMeow;
             @Meow.performed -= instance.OnMeow;
             @Meow.canceled -= instance.OnMeow;
+            @Newaction1.started -= instance.OnNewaction1;
+            @Newaction1.performed -= instance.OnNewaction1;
+            @Newaction1.canceled -= instance.OnNewaction1;
         }
 
         /// <summary>
@@ -480,5 +512,12 @@ public partial class @CatInputs: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnMeow(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "New action1" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnNewaction1(InputAction.CallbackContext context);
     }
 }
