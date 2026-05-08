@@ -34,7 +34,6 @@ public class GameManager : MonoBehaviour
     public GameObject deathParticlesPrefab;
 
     [Header("Audio")]
-    [Header("Audio")] 
     public AudioSource musicSource;
     private AudioMusic audioMusic;
 
