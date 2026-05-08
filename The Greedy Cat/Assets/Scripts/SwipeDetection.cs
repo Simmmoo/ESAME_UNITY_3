@@ -1,40 +1,40 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-public class SwipeDetection : MonoBehaviour 
+
+public class SwipeDetection : MonoBehaviour
 {
-	public static SwipeDetection instance;
-	public delegate void Swipe(Vector2 direction);
-	public event Swipe swipePerformed;
-	[SerializeField] private InputAction position, press;
+    public delegate void SwipeDelegate(Vector2 direction);
+    public event SwipeDelegate OnSwipePerformed;
 
-	[SerializeField] private float swipeResistance = 100;
-	private Vector2 initialPos;
-	private Vector2 currentPos => position.ReadValue<Vector2>();
-	private void Awake () 
-	{
-		position.Enable();
-		press.Enable();	
-		press.performed += _ => { initialPos = currentPos; };
-		press.canceled += _ => DetectSwipe();
-		instance = this;
-	}
+    [SerializeField] private float swipeResistance = 100f;
+    private CatInputs controls;
+    private Vector2 initialPosition;
 
-	private void DetectSwipe () 
-	{
-		Vector2 delta = currentPos - initialPos;
-		Vector2 direction = Vector2.zero;
+    private void Awake() => controls = new CatInputs();
+    private void OnEnable() => controls.Enable();
+    private void OnDisable() => controls.Disable();
 
-		if(Mathf.Abs(delta.x) > swipeResistance)
-		{
-			direction.x = Mathf.Clamp(delta.x, -1, 1);
-		}
-		if(Mathf.Abs(delta.y) > swipeResistance)
-		{
-			direction.y = Mathf.Clamp(delta.y, -1, 1);
-		}
-		if(direction != Vector2.zero & swipePerformed != null)
-			swipePerformed(direction);
-	}
+    private void Start()
+    {
+        // Salva la posizione quando il dito tocca lo schermo
+        controls.Player.PrimaryContact.started += ctx => {
+            initialPosition = controls.Player.PrimaryPosition.ReadValue<Vector2>();
+        };
+
+        // Calcola lo swipe quando il dito viene alzato
+        controls.Player.PrimaryContact.canceled += ctx => DetectSwipe();
+    }
+
+    private void DetectSwipe()
+    {
+        Vector2 currentPosition = controls.Player.PrimaryPosition.ReadValue<Vector2>();
+        Vector2 delta = currentPosition - initialPosition;
+
+        // Se lo spostamento verticale verso l'alto supera la resistenza
+        if (delta.y > swipeResistance && Mathf.Abs(delta.y) > Mathf.Abs(delta.x))
+        {
+            if (OnSwipePerformed != null)
+                OnSwipePerformed(Vector2.up);
+        }
+    }
 }

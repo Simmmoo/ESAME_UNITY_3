@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem; 
+using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
@@ -12,7 +12,10 @@ public class PlayerController : MonoBehaviour
     private bool isPressingLeft;
     private bool isPressingRight;
 
-    private CatInputs controls; // Riferimento al nuovo sistema
+    private CatInputs controls;
+
+    [Header("Mobile Swipe")]
+    [SerializeField] private SwipeDetection swipeReader; // Trascina qui l'oggetto con lo script SwipeDetection
 
     [Header("Movimento")]
     [SerializeField] private float speed;
@@ -53,20 +56,27 @@ public class PlayerController : MonoBehaviour
     public AudioClip snackCollectSound;
     public AudioClip meow;
 
-
     private void Awake()
     {
-        controls = new CatInputs(); 
+        controls = new CatInputs();
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponentInChildren<Animator>();
         myRend = GetComponentInChildren<SpriteRenderer>();
     }
 
-    // Abilita/Disabilita i controlli con l'oggetto
     private void OnEnable() => controls.Enable();
     private void OnDisable() => controls.Disable();
 
-
+    private void Start()
+    {
+        // Colleghiamo l'evento dello swipe alla nostra funzione di salto
+        if (swipeReader != null)
+        {
+            swipeReader.OnSwipePerformed += (dir) => {
+                if (dir == Vector2.up) OnSwipeJump();
+            };
+        }
+    }
 
     void Update()
     {
@@ -78,6 +88,7 @@ public class PlayerController : MonoBehaviour
             isPressingRight = keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed;
         }
 
+        // Logica per non annullare l'input se si premono A e D insieme (importante per il muro)
         if (isPressingLeft && isPressingRight) horizontalInput = 0;
         else if (isPressingLeft) horizontalInput = -1;
         else if (isPressingRight) horizontalInput = 1;
@@ -87,14 +98,12 @@ public class PlayerController : MonoBehaviour
         HandleMovement();
         CheckGroundAndWall();
         CheckForPushableObject();
-        HandleJump();
+        HandleJump(); // Mantiene il salto da tastiera (Spazio)
         HandleAnimation();
 
         // SPINTA AUTOMATICA
         if (isObjectDetected && !isPushing && horizontalInput != 0)
         {
-            // Verifichiamo che la direzione dell'input sia la stessa di FacingDirection
-            // (ovvero che stia camminando "dentro" la scatola)
             if ((horizontalInput > 0 && FacingDirection == 1) || (horizontalInput < 0 && FacingDirection == -1))
             {
                 PushObject();
@@ -109,22 +118,27 @@ public class PlayerController : MonoBehaviour
 
     void HandleJump()
     {
-        // Jump.triggered è vero nel frame in cui premi il tasto/fai lo swipe
         if (controls.Player.Jump.triggered)
         {
-            if (isGrounded)
-            {
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-                PlayJumpSound();
-            }
-            else if (isGrabbingWall)
-            {
-                isGrabbingWall = false;
-                rb.gravityScale = 1;
-                int jumpDirection = -FacingDirection;
-                rb.linearVelocity = new Vector2(jumpDirection * wallJumpHorizontalForce, wallJumpForce);
-                PlayJumpSound();
-            }
+            OnSwipeJump(); // Usiamo la stessa logica del salto mobile
+        }
+    }
+
+    // FUNZIONE DI SALTO UNIFICATA (Usata sia da tastiera che da Swipe)
+    public void OnSwipeJump()
+    {
+        if (isGrounded)
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            PlayJumpSound();
+        }
+        else if (isGrabbingWall)
+        {
+            isGrabbingWall = false;
+            rb.gravityScale = 1;
+            int jumpDirection = -FacingDirection;
+            rb.linearVelocity = new Vector2(jumpDirection * wallJumpHorizontalForce, wallJumpForce);
+            PlayJumpSound();
         }
     }
 
@@ -161,12 +175,7 @@ public class PlayerController : MonoBehaviour
     void CheckGroundAndWall()
     {
         isGrounded = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, whatIsGround | pushableLayer);
-
-        // Il gatto guarda avanti in base alla direzione attuale
         isWallDetected = Physics2D.Raycast(transform.position, Vector2.right * FacingDirection, wallCheckDistance, wallLayer);
-
-        // RIMANI AGGRAPPATO se rilevi il muro E se stai premendo ALMENO uno dei due tasti 
-        // isGrabbingWall rimane sempre TRUE e non cadi
         isGrabbingWall = isWallDetected && !isGrounded && (isPressingLeft || isPressingRight);
     }
 
@@ -223,24 +232,6 @@ public class PlayerController : MonoBehaviour
         if (collision.CompareTag("Snack"))
         {
             if (audioSource != null && snackCollectSound != null) audioSource.PlayOneShot(snackCollectSound);
-        }
-    }
-
-    public void MobileJump()
-    {
-        // simula la pressione del tasto Jump del nuovo Input System
-        if (isGrounded)
-        {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-            PlayJumpSound();
-        }
-        else if (isGrabbingWall)
-        {
-            isGrabbingWall = false;
-            rb.gravityScale = 1;
-            int jumpDirection = -FacingDirection;
-            rb.linearVelocity = new Vector2(jumpDirection * wallJumpHorizontalForce, wallJumpForce);
-            PlayJumpSound();
         }
     }
 }
