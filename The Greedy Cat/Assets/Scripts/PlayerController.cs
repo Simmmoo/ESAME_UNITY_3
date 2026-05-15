@@ -1,25 +1,21 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using UnityEngine.InputSystem; // Fondamentale!
 
 public class PlayerController : MonoBehaviour
 {
     private Rigidbody2D rb;
     private Animator anim;
     private float horizontalInput;
-    private bool isPressingLeft;
-    private bool isPressingRight;
 
-    private CatInputs controls;
-
-    [Header("Mobile Swipe")]
-    [SerializeField] private SwipeDetection swipeReader;
+    private CatInputs controls; // Riferimento al nuovo sistema
 
     [Header("Movimento")]
     [SerializeField] private float speed;
     public float jumpForce;
+    private bool isPressingLeft;
+    private bool isPressingRight;
 
     [Header("Ground Check")]
     public bool isGrounded = true;
@@ -58,24 +54,15 @@ public class PlayerController : MonoBehaviour
 
     private void Awake()
     {
-        controls = new CatInputs();
+        controls = new CatInputs(); // Inizializza i controlli
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponentInChildren<Animator>();
         myRend = GetComponentInChildren<SpriteRenderer>();
     }
 
+    // Abilita/Disabilita i controlli con l'oggetto
     private void OnEnable() => controls.Enable();
     private void OnDisable() => controls.Disable();
-
-    private void Start()
-    {
-        if (swipeReader != null)
-        {
-            swipeReader.OnSwipePerformed += (dir) => {
-                if (dir == Vector2.up) OnSwipeJump();
-            };
-        }
-    }
 
     void Update()
     {
@@ -99,15 +86,20 @@ public class PlayerController : MonoBehaviour
         HandleJump();
         HandleAnimation();
 
+        // NUOVA LOGICA DI SPINTA AUTOMATICA
+        // Se rileva un oggetto, non sta già spingendo e il giocatore preme verso l'oggetto
         if (isObjectDetected && !isPushing && horizontalInput != 0)
         {
+            // Verifichiamo che la direzione dell'input sia la stessa di FacingDirection
+            // (ovvero che stia camminando "dentro" la scatola)
             if ((horizontalInput > 0 && FacingDirection == 1) || (horizontalInput < 0 && FacingDirection == -1))
             {
                 PushObject();
             }
         }
 
-        if (controls.Player.Meow.triggered)
+        // Il Miao rimane opzionale o mappabile
+        if (keyboard != null && keyboard.mKey.wasPressedThisFrame)
         {
             PlayMeow();
         }
@@ -115,29 +107,26 @@ public class PlayerController : MonoBehaviour
 
     void HandleJump()
     {
+        // Jump.triggered è vero nel frame in cui premi il tasto/fai lo swipe
         if (controls.Player.Jump.triggered)
         {
-            OnSwipeJump();
+            if (isGrounded)
+            {
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+                PlayJumpSound();
+            }
+            else if (isGrabbingWall)
+            {
+                isGrabbingWall = false;
+                rb.gravityScale = 1;
+                int jumpDirection = -FacingDirection;
+                rb.linearVelocity = new Vector2(jumpDirection * wallJumpHorizontalForce, wallJumpForce);
+                PlayJumpSound();
+            }
         }
     }
 
-    public void OnSwipeJump()
-    {
-        if (isGrounded)
-        {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-            PlayJumpSound();
-        }
-        else if (isGrabbingWall)
-        {
-            // Quando saltiamo, resettiamo lo stato di aggancio
-            isGrabbingWall = false;
-            rb.gravityScale = 1;
-            int jumpDirection = -FacingDirection;
-            rb.linearVelocity = new Vector2(jumpDirection * wallJumpHorizontalForce, wallJumpForce);
-            PlayJumpSound();
-        }
-    }
+    // --- DA QUI IN POI IL CODICE È IDENTICO AL TUO ORIGINALE ---
 
     void Flip()
     {
@@ -174,21 +163,9 @@ public class PlayerController : MonoBehaviour
         isGrounded = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, whatIsGround | pushableLayer);
         isWallDetected = Physics2D.Raycast(transform.position, Vector2.right * FacingDirection, wallCheckDistance, wallLayer);
 
-        // NUOVA LOGICA AGGANCIO "STICKY"
-        if (isGrounded)
-        {
-            isGrabbingWall = false;
-        }
-        else if (isWallDetected && !isGrounded)
-        {
-            // Si aggancia automaticamente appena tocca il muro a mezz'aria
-            isGrabbingWall = true;
-        }
-        else if (!isWallDetected)
-        {
-            // Se il muro finisce, il gatto cade
-            isGrabbingWall = false;
-        }
+        // MODIFICA QUI: 
+        // Il gatto resta aggrappato se rileva il muro E se stai premendo o Destra o Sinistra
+        isGrabbingWall = isWallDetected && !isGrounded && (isPressingLeft || isPressingRight);
     }
 
     void CheckForPushableObject()
