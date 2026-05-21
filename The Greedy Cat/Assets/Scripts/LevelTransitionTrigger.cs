@@ -1,13 +1,16 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class LevelTransitionTrigger : MonoBehaviour
 {
     private ChangeScene changeSceneScript;
     private bool hasTriggered = false;
+    public string nextSceneName;
+    public string currentSceneName;
 
     private void Awake()
     {
-        changeSceneScript = FindFirstObjectByType<ChangeScene>();
+        //changeSceneScript = FindFirstObjectByType<ChangeScene>();
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -15,16 +18,11 @@ public class LevelTransitionTrigger : MonoBehaviour
         if (other.CompareTag("Player") && !hasTriggered)
         {
             hasTriggered = true;
+            Debug.Log("Passaggio livello avviato...");
 
-            if (changeSceneScript != null)
-            {
-                Debug.Log("Passaggio livello avviato...");
-                changeSceneScript.StartLevelTransition();
-            }
-            else
-            {
-                Debug.LogError("Manca lo script ChangeScene nella scena!");
-            }
+            SceneManager.LoadSceneAsync(nextSceneName, LoadSceneMode.Additive);
+            SceneManager.UnloadSceneAsync(currentSceneName);
+
         }
     }
 }

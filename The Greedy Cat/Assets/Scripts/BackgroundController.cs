@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,13 +7,14 @@ public class BackgroundController : MonoBehaviour
 {
     private float startPosX, startPosY;
     private float lengthX;
-    public GameObject cam;
+    [NonSerialized] public GameObject cam;
     public float parallaxEffectX;
     public float parallaxEffectY;
     public float yOffset = -2f; // Offset per regolare la posizione Y
 
     void Start()
     {
+        cam = Camera.main.gameObject;
         startPosX = transform.position.x;
         startPosY = transform.position.y;
         lengthX = GetComponent<SpriteRenderer>().bounds.size.x;

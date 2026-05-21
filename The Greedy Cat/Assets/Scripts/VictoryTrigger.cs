@@ -8,6 +8,10 @@ public class VictoryTrigger : MonoBehaviour
         {
             GameManager.Instance.CheckVictory();
         }
+        else
+        {
+            Debug.Log("Non funge :(");
+        }
     }
 }
 

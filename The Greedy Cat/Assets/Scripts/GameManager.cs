@@ -54,7 +54,7 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
         }
 
-        audioMusic = FindObjectOfType<AudioMusic>();
+        audioMusic = Object.FindFirstObjectByType<AudioMusic>();
     }
 
     private void Update()
@@ -125,6 +125,9 @@ public class GameManager : MonoBehaviour
         {
             Debug.Log("Hai vinto");
             victoryPanel.SetActive(true);
+            Debug.Log("Si attiva il panel");
         }
     }
+
+
 }

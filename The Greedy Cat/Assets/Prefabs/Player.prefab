@@ -1,89 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &1015426556568722767
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 7641723646140090716}
-  - component: {fileID: 1580525595065494768}
-  m_Layer: 0
-  m_Name: EyesLight
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &7641723646140090716
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1015426556568722767}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.0059868917, w: 0.9999821}
-  m_LocalPosition: {x: 0.08000015, y: -0.4159999, z: -0.032261875}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 7720122195535613089}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1580525595065494768
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1015426556568722767}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 073797afb82c5a1438f328866b10b3f0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_ComponentVersion: 2
-  m_LightType: 3
-  m_BlendStyleIndex: 0
-  m_FalloffIntensity: 0.354
-  m_Color: {r: 0.8778945, g: 1, b: 0.6839622, a: 1}
-  m_Intensity: 1
-  m_LightVolumeIntensity: 1
-  m_LightVolumeEnabled: 0
-  m_ApplyToSortingLayers: 00000000
-  m_LightCookieSprite: {fileID: 0}
-  m_DeprecatedPointLightCookieSprite: {fileID: 0}
-  m_LightOrder: 0
-  m_AlphaBlendOnOverlap: 0
-  m_OverlapOperation: 0
-  m_NormalMapDistance: 3
-  m_NormalMapQuality: 2
-  m_UseNormalMap: 0
-  m_ShadowsEnabled: 0
-  m_ShadowIntensity: 0.556
-  m_ShadowSoftness: 0
-  m_ShadowSoftnessFalloffIntensity: 0.5
-  m_ShadowVolumeIntensityEnabled: 0
-  m_ShadowVolumeIntensity: 0.75
-  m_LocalBounds:
-    m_Center: {x: 0, y: -0.00000011920929, z: 0}
-    m_Extent: {x: 0.9985302, y: 0.99853027, z: 0}
-  m_PointLightInnerAngle: 360
-  m_PointLightOuterAngle: 360
-  m_PointLightInnerRadius: 3
-  m_PointLightOuterRadius: 4.285698
-  m_ShapeLightParametricSides: 5
-  m_ShapeLightParametricAngleOffset: 0
-  m_ShapeLightParametricRadius: 1
-  m_ShapeLightFalloffSize: 0.5
-  m_ShapeLightFalloffOffset: {x: 0, y: 0}
-  m_ShapePath:
-  - {x: -0.5, y: -0.5, z: 0}
-  - {x: 0.5, y: -0.5, z: 0}
-  - {x: 0.5, y: 0.5, z: 0}
-  - {x: -0.5, y: 0.5, z: 0}
 --- !u!1 &1142571511111887461
 GameObject:
   m_ObjectHideFlags: 0
@@ -135,7 +51,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 1
+  m_GravityScale: 0.2
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -196,9 +112,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 452a5032920dd4743b16c6764245c979, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rb: {fileID: 6032299867961888213}
-  isPressingLeft: 0
-  isPressingRight: 0
   speed: 6
   jumpForce: 6
   isGrounded: 1
@@ -214,6 +127,7 @@ MonoBehaviour:
   isGrabbingWall: 0
   wallJumpForce: 6
   wallJumpHorizontalForce: 6
+  wallJumpCooldownDuration: 0.4
   objectCheckDistance: 1
   isObjectDetected: 0
   pushableLayer:
@@ -223,8 +137,8 @@ MonoBehaviour:
   audioSource: {fileID: 8328613511050892451}
   jumpSound: {fileID: 8300000, guid: 13b8e8f045655494e89509e12dde6d44, type: 3}
   pushSound: {fileID: 8300000, guid: 76a302090dda19044bd67e1b6be682b3, type: 3}
-  snackCollectSound: {fileID: 0}
-  meow: {fileID: 0}
+  snackCollectSound: {fileID: 8300000, guid: 76533698665a21b45994d94316934bf3, type: 3}
+  meow: {fileID: 8300000, guid: b88dd34d013ed9048b0fd8584693ba98, type: 3}
 --- !u!82 &8328613511050892451
 AudioSource:
   m_ObjectHideFlags: 0
@@ -352,8 +266,7 @@ Transform:
   m_LocalPosition: {x: 0.062, y: 1.096, z: 0.032261875}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 7641723646140090716}
+  m_Children: []
   m_Father: {fileID: 4351995386516200463}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &8122054450377988406

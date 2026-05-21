@@ -9,7 +9,8 @@ public class ChangeScene : MonoBehaviour
     [Header("Impostazioni Fade (Dissolvenza)")]
     public Image fadeCanvasImage;
     public float fadeDuration = 1f;
-
+    public CanvasGroup startScreenCanvasGrp;
+    public Image fadePanel;
     private void Start()
     {
         if (fadeCanvasImage != null)
@@ -52,7 +53,7 @@ public class ChangeScene : MonoBehaviour
 
         if (nextLevelIndex < SceneManager.sceneCountInBuildSettings)
         {
-            SceneManager.LoadScene(nextLevelIndex);
+            SceneManager.LoadScene(nextLevelIndex, LoadSceneMode.Additive);
         }
         else
         {
@@ -60,7 +61,16 @@ public class ChangeScene : MonoBehaviour
         }
     }
 
-    public void LoadGame() => SceneManager.LoadScene("LVL_01");
+    //public void LoadGame() => SceneManager.LoadScene("LVL_01", LoadSceneMode.Additive);
+
+    public void LoadGame()
+    {
+        SceneManager.LoadScene("LVL_01", LoadSceneMode.Additive);
+        startScreenCanvasGrp.alpha = 0;
+        fadePanel.color = new Color(0, 0, 0, 0);
+        fadePanel.gameObject.SetActive(false);
+        startScreenCanvasGrp.blocksRaycasts = false;
+    }
     public void LoadSpecificLevel(string levelName) => SceneManager.LoadScene(levelName);
     public void QuitGame() { Application.Quit(); Debug.Log("Quit"); }
     public void ExitGame() => SceneManager.LoadScene("START_MENU");
