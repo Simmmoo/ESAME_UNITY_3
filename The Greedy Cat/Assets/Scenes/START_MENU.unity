@@ -1815,6 +1815,7 @@ MonoBehaviour:
   fadeDuration: 1
   startScreenCanvasGrp: {fileID: 2109935649}
   fadePanel: {fileID: 21893884}
+  player: {fileID: 1472606281}
 --- !u!4 &598106078
 Transform:
   m_ObjectHideFlags: 0
@@ -3429,6 +3430,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 1142571511111887461, guid: 800e14f705d887b43a6e6f9d86f13ef0, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4351995386516200463, guid: 800e14f705d887b43a6e6f9d86f13ef0, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1025.72
@@ -3495,7 +3500,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1015814811
 RectTransform:
   m_ObjectHideFlags: 0
@@ -5379,6 +5384,11 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1 &1472606281 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1142571511111887461, guid: 800e14f705d887b43a6e6f9d86f13ef0, type: 3}
+  m_PrefabInstance: {fileID: 999669790}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1474721028
 GameObject:
   m_ObjectHideFlags: 0
@@ -5790,7 +5800,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1532345273
 MonoBehaviour:
   m_ObjectHideFlags: 0

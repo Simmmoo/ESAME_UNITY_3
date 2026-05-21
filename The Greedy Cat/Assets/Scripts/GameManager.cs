@@ -86,7 +86,7 @@ public class GameManager : MonoBehaviour
         }
 
         else
-        { 
+        {
             gameOverPanel.SetActive(true);
         }
     }
@@ -124,6 +124,7 @@ public class GameManager : MonoBehaviour
         if (SnackPoint >= 4)
         {
             Debug.Log("Hai vinto");
+            if (victoryPanel.GetComponentInParent<CanvasGroup>() != null) victoryPanel.GetComponentInParent<CanvasGroup>().alpha = 1;
             victoryPanel.SetActive(true);
             Debug.Log("Si attiva il panel");
         }

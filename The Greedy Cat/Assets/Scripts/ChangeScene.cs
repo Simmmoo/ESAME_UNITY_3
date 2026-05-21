@@ -11,6 +11,8 @@ public class ChangeScene : MonoBehaviour
     public float fadeDuration = 1f;
     public CanvasGroup startScreenCanvasGrp;
     public Image fadePanel;
+
+    [SerializeField] GameObject player;
     private void Start()
     {
         if (fadeCanvasImage != null)
@@ -70,6 +72,7 @@ public class ChangeScene : MonoBehaviour
         fadePanel.color = new Color(0, 0, 0, 0);
         fadePanel.gameObject.SetActive(false);
         startScreenCanvasGrp.blocksRaycasts = false;
+        player.SetActive(true);
     }
     public void LoadSpecificLevel(string levelName) => SceneManager.LoadScene(levelName);
     public void QuitGame() { Application.Quit(); Debug.Log("Quit"); }
