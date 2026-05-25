@@ -6,7 +6,8 @@ using UnityEngine.Rendering.Universal; // Obbligatorio per gestire Light2D
 public class PlayerLightController : MonoBehaviour
 {
     private Light2D playerLight;
-    private bool isLightOn = false; // Di base la luce parte spenta
+    private bool isLightOn = false;
+    public bool IsLightOn => isLightOn;
 
     [Header("Riferimento UI")]
     [SerializeField] private GameObject toggleLightButton; // Il pulsante della luce da nascondere/mostrare
