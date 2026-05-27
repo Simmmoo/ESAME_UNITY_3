@@ -6,14 +6,16 @@ using UnityEngine;
 public class MouseManager : MonoBehaviour
 {
     [Header("Movimento Base (Luce Spenta)")]
-    public float speed = 2f;        // Velocità del movimento di pattuglia
-    public float distance = 3f;     // Distanza massima che può percorrere prima di girarsi
+    public float speed = 2f;
+    public float distance = 3f;
 
     [Header("Inseguimento (Luce Accesa)")]
-    public float chaseSpeed = 4f;   // Il topo corre più veloce quando insegue
+    public float chaseSpeed = 4f;
+    [Tooltip("Soglia di tolleranza per evitare il tremolio quando il topo e' quasi allineato al gatto")]
+    public float tolleranzaX = 0.2f; // Se la distanza X e' minore di 0.2, il topo si stabilizza
 
     [Header("Combattimento")]
-    public int damage = 1;          // Danni inflitti
+    public int damage = 1;
 
     [DoNotSerialize] public Vector3 startPos;
 
@@ -21,16 +23,14 @@ public class MouseManager : MonoBehaviour
     private PlayerLightController playerLightController;
     private SpriteRenderer spriteRenderer;
 
-    // Variabili interne per calcolare la nuova pattuglia dinamica
-    private int currentDirection = 1; // 1 = Destra, -1 = Sinistra
+    private int currentDirection = 1;
     private float traveledDistance = 0f;
 
     void Start()
     {
-        startPos = transform.position; // Posizione iniziale assoluta al primo spawn
+        startPos = transform.position;
         spriteRenderer = GetComponent<SpriteRenderer>();
 
-        // Cerca il gatto nella scena tramite il Tag
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null)
         {
@@ -41,48 +41,63 @@ public class MouseManager : MonoBehaviour
 
     void Update()
     {
-        // Controlliamo se la luce del gatto è accesa
         bool isPlayerLightOn = (playerLightController != null && playerLightController.IsLightOn);
 
         if (isPlayerLightOn && playerTransform != null)
         {
             // --- INSEGUIMENTO (LUCE ACCESA) ---
-            float directionX = Mathf.Sign(playerTransform.position.x - transform.position.x);
 
-            // Muove il topo verso il player
-            transform.position += new Vector3(directionX * chaseSpeed * Time.deltaTime, 0, 0);
+            // Calcoliamo la distanza effettiva tra il topo e il gatto sull'asse X
+            float distanzaDizionaleX = playerTransform.position.x - transform.position.x;
 
-            // Quando insegue, resettiamo la distanza percorsa in modo che, al momento dello spegnimento,
-            // il punto in cui si ferma diventi il NUOVO centro del suo movimento di pattuglia
+            // Se la distanza e' maggiore della tolleranza, il topo si muove
+            if (Mathf.Abs(distanzaDizionaleX) > tolleranzaX)
+            {
+                float directionX = Mathf.Sign(distanzaDizionaleX);
+
+                // Muove il topo
+                transform.position += new Vector3(directionX * chaseSpeed * Time.deltaTime, 0, 0);
+
+                // Aggiorna lo sprite basandosi sulla direzione effettiva di movimento
+                if (spriteRenderer != null)
+                {
+                    spriteRenderer.flipX = (directionX < 0);
+                    currentDirection = directionX > 0 ? 1 : -1;
+                }
+            }
+            // Se la distanza rientra nella tolleranza, il topo si ferma immobile sotto/sopra il gatto,
+            // evitando i micro-scatti ma continuando a guardarlo coerentemente
+            else
+            {
+                if (spriteRenderer != null)
+                {
+                    float direzioneSguardo = Mathf.Sign(distanzaDizionaleX);
+                    // Evita di cambiare flip se siamo praticamente a zero spaccato
+                    if (Mathf.Abs(distanzaDizionaleX) > 0.01f)
+                    {
+                        spriteRenderer.flipX = (direzioneSguardo < 0);
+                    }
+                }
+            }
+
+            // Mantiene aggiornata la posizione di pattuglia dinamica per quando si spegnera' la luce
             startPos = transform.position;
             traveledDistance = 0f;
-
-            // Se va a destra (directionX > 0) si muove in un senso, a sinistra (directionX < 0) si flippa lo sprite
-            if (spriteRenderer != null)
-            {
-                spriteRenderer.flipX = (directionX < 0);
-                // Aggiorna anche la direzione interna in modo che riparta coerente allo spegnimento
-                currentDirection = directionX > 0 ? 1 : -1;
-            }
         }
         else
         {
             // --- PATTUGLIAMENTO FLUIDO (LUCE SPENTA) ---
-            // Calcola lo spostamento di questo frame
             float movement = currentDirection * speed * Time.deltaTime;
             transform.position += new Vector3(movement, 0, 0);
 
-            // Accumula la distanza percorsa (usiamo il valore assoluto)
             traveledDistance += Mathf.Abs(movement);
 
-            // Se il topo ha percorso tutta la distanza impostata dall'Inspector, inverte la marcia
             if (traveledDistance >= distance)
             {
-                currentDirection = -currentDirection; // Inverte (da 1 a -1 o viceversa)
-                traveledDistance = 0f;               // Resetta il contatore per la nuova direzione
+                currentDirection = -currentDirection;
+                traveledDistance = 0f;
             }
 
-            // Gira lo sprite in base alla direzione attuale di pattugliamento
             if (spriteRenderer != null)
             {
                 spriteRenderer.flipX = (currentDirection < 0);
@@ -90,7 +105,6 @@ public class MouseManager : MonoBehaviour
         }
     }
 
-    // Collisione identica a prima
     private void OnTriggerEnter2D(Collider2D collision)
     {
         PlayerController player = collision.gameObject.GetComponent<PlayerController>();
