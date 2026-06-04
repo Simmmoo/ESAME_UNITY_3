@@ -238,8 +238,14 @@ public class PlayerController : MonoBehaviour
     }
 
     public void Die() => Destroy(gameObject);
-    void PlayJumpSound() { if (audioSource != null && jumpSound != null) audioSource.PlayOneShot(jumpSound); }
-    void PlayMeow() { if (audioSource != null && meow != null) audioSource.PlayOneShot(meow); }
+    void PlayJumpSound() 
+    { 
+        if (audioSource != null && jumpSound != null) audioSource.PlayOneShot(jumpSound); 
+    }
+    void PlayMeow() 
+    { 
+        if (audioSource != null && meow != null) audioSource.PlayOneShot(meow); 
+    }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {

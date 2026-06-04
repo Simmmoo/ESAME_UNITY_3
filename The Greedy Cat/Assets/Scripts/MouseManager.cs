@@ -35,12 +35,22 @@ public class MouseManager : MonoBehaviour
         if (playerObj != null)
         {
             playerTransform = playerObj.transform;
-            playerLightController = playerObj.GetComponent<PlayerLightController>();
         }
+
+        // Cerca PlayerLightController nella scena, non più sul player
+        playerLightController = FindFirstObjectByType<PlayerLightController>();
     }
 
     void Update()
     {
+        // Se il player è stato distrutto e respawnato, aggiorna i riferimenti
+        if (playerTransform == null)
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+                playerTransform = playerObj.transform;
+        }
+
         bool isPlayerLightOn = (playerLightController != null && playerLightController.IsLightOn);
 
         if (isPlayerLightOn && playerTransform != null)

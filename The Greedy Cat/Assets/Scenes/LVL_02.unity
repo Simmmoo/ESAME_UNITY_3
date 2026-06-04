@@ -210,6 +210,7 @@ MonoBehaviour:
   speed: 2
   distance: 3
   chaseSpeed: 4
+  tolleranzaX: 0.2
   damage: 1
   startPos: {x: 0, y: 0, z: 0}
 --- !u!70 &99302255
@@ -529,6 +530,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   nextSceneName: LVL_03
   currentSceneName: LVL_02
+  livelloDaSbloccare: 3
 --- !u!61 &1909373329
 BoxCollider2D:
   m_ObjectHideFlags: 0

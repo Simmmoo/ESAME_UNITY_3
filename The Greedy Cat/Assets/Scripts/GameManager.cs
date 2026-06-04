@@ -93,12 +93,16 @@ public class GameManager : MonoBehaviour
     }
 
     private IEnumerator RespawnCoroutine()
-
     {
         yield return new WaitForSeconds(respawnDelay);
         GameObject newPlayer = Instantiate(playerPrefab, respawnPoint.position, Quaternion.identity);
         player = newPlayer.GetComponent<PlayerController>();
         myCinemachine.GetComponent<CinemachineVirtualCamera>().Follow = player.transform;
+
+        // Reapplica lo stato della luce sul nuovo player appena spawnato
+        PlayerLightController lightController = FindFirstObjectByType<PlayerLightController>();
+        if (lightController != null)
+            lightController.AggiornaLuceSuPlayer();
     }
 
     private void ReduceLifeOpacity()
@@ -115,76 +119,80 @@ public class GameManager : MonoBehaviour
 
 
 
-// --- LOGICA SELEZIONE LIVELLI CON SPOSTAMENTO PLAYER ---
+    // --- LOGICA SELEZIONE LIVELLI CON SPOSTAMENTO PLAYER ---
 
-// Questa funzione viene attivata dal tasto "LVL 01"
-public void SelezionaLivello1()
-{
-    CaricaLivelloSelezionato("LVL_01");
-}
+    // Questa funzione viene attivata dal tasto "LVL 01"
+    // --- LOGICA SELEZIONE LIVELLI ---
 
-// Questa funzione viene attivata dal tasto "LVL 02"
-public void SelezionaLivello2()
-{
-    CaricaLivelloSelezionato("LVL_02");
-}
-
-// Questa funzione viene attivata dal tasto "LVL 03"
-public void SelezionaLivello3()
-{
-    CaricaLivelloSelezionato("LVL_03");
-}
-
-// Logica interna che fa il lavoro di pulizia, caricamento e spostamento
-private void CaricaLivelloSelezionato(string nomeLivello)
-{
-    // Ripristina il tempo a 1 nel caso in cui fossimo passati da un menu di pausa
-    Time.timeScale = 1f;
-
-    // Svuota e scarica qualsiasi altro livello additivo precedentemente aperto per evitare sovrapposizioni
-    for (int i = 0; i < SceneManager.sceneCount; i++)
+    public void SelezionaLivello1()
     {
-        Scene scenaCorrente = SceneManager.GetSceneAt(i);
-        if (scenaCorrente.name != "START_MENU")
-        {
-            SceneManager.UnloadSceneAsync(scenaCorrente.buildIndex);
-        }
+        CaricaLivelloSelezionato("LVL_01", 1);
     }
 
-    // Carica la nuova scena del livello scelta in modo Additivo
-    SceneManager.LoadScene(nomeLivello, LoadSceneMode.Additive);
-
-    // --- AGGIUNTA: LOGICA DI SPOSTAMENTO SULLO SPAWNPOINT ---
-
-    // Cerchiamo nella scena lo SpawnPoint appena caricato (tramite il componente)
-    SpawnPoint puntoDiSpawn = FindFirstObjectByType<SpawnPoint>();
-
-    // Cerchiamo il gatto che hai appena attivato
-    GameObject player = GameObject.FindGameObjectWithTag("Player");
-
-    if (player != null && puntoDiSpawn != null)
+    public void SelezionaLivello2()
     {
-        // Sposta il gatto nella posizione esatta del nuovo SpawnPoint
-        player.transform.position = puntoDiSpawn.transform.position;
+        // Richiede che il livello 2 sia stato sbloccato
+        int highestUnlocked = PlayerPrefs.GetInt("HighestLevelUnlocked", 1);
+        if (highestUnlocked >= 2)
+            CaricaLivelloSelezionato("LVL_02", 2);
+        else
+            Debug.Log("LVL_02 non ancora sbloccato!");
+    }
 
-        // Reset della fisica per evitare che mantenga velocità o vettori dei livelli precedenti
-        Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
-        if (rb != null)
+    public void SelezionaLivello3()
+    {
+        int highestUnlocked = PlayerPrefs.GetInt("HighestLevelUnlocked", 1);
+        if (highestUnlocked >= 3)
+            CaricaLivelloSelezionato("LVL_03", 3);
+        else
+            Debug.Log("LVL_03 non ancora sbloccato!");
+    }
+
+    private void CaricaLivelloSelezionato(string nomeLivello, int numeroLivello)
+    {
+        Time.timeScale = 1f;
+
+        // Scarica tutte le scene additive aperte tranne START_MENU
+        for (int i = 0; i < SceneManager.sceneCount; i++)
         {
-            rb.linearVelocity = Vector2.zero;
+            Scene scenaCorrente = SceneManager.GetSceneAt(i);
+            if (scenaCorrente.name != "START_MENU")
+            {
+                SceneManager.UnloadSceneAsync(scenaCorrente.buildIndex);
+            }
         }
 
-        Debug.Log("Player respawnato con successo nello SpawnPoint di: " + nomeLivello);
+        // Carica la nuova scena e sposta il player solo dopo che è pronta
+        StartCoroutine(CaricaESpawna(nomeLivello));
     }
-    else
-    {
-        // Log di controllo se qualcosa dovesse andare storto
-        if (player == null) Debug.LogWarning("Selezione Livelli: Player non trovato in scena.");
-        if (puntoDiSpawn == null) Debug.LogWarning("Selezione Livelli: Nessuno script SpawnPoint trovato nel livello " + nomeLivello);
-    }
-}
 
-public void AddPoints()
+    private IEnumerator CaricaESpawna(string nomeLivello)
+    {
+        AsyncOperation op = SceneManager.LoadSceneAsync(nomeLivello, LoadSceneMode.Additive);
+
+        // Aspetta che la scena sia completamente caricata
+        yield return new WaitUntil(() => op.isDone);
+
+        // Ora cerca SpawnPoint e Player nella scena appena caricata
+        SpawnPoint puntoDiSpawn = FindFirstObjectByType<SpawnPoint>();
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+
+        if (playerObj != null && puntoDiSpawn != null)
+        {
+            playerObj.transform.position = puntoDiSpawn.transform.position;
+
+            Rigidbody2D rb = playerObj.GetComponent<Rigidbody2D>();
+            if (rb != null) rb.linearVelocity = Vector2.zero;
+
+            Debug.Log("Player spawnato in: " + nomeLivello);
+        }
+        else
+        {
+            if (playerObj == null) Debug.LogWarning("Player non trovato.");
+            if (puntoDiSpawn == null) Debug.LogWarning("SpawnPoint non trovato in: " + nomeLivello);
+        }
+    }
+    public void AddPoints()
     {
         {
             SnackPoint++;
@@ -218,4 +226,31 @@ public void AddPoints()
         Debug.Log("Gioco Ripreso");
     }
 
+    public void TornaAlMenu()
+    {
+        Time.timeScale = 1f;
+
+        // Disattiva il player prima di scaricare la scena
+        if (player != null)
+            player.gameObject.SetActive(false);
+
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            Scene scena = SceneManager.GetSceneAt(i);
+            if (scena.name != "START_MENU")
+            {
+                SceneManager.UnloadSceneAsync(scena.buildIndex);
+            }
+        }
+
+        // Ripristina il menu iniziale
+        ChangeScene changeScene = FindFirstObjectByType<ChangeScene>();
+        if (changeScene != null)
+        {
+            changeScene.startScreenCanvasGrp.alpha = 1f;
+            changeScene.startScreenCanvasGrp.blocksRaycasts = true;
+            changeScene.fadePanel.gameObject.SetActive(true);
+            changeScene.fadePanel.color = new Color(0, 0, 0, 0);
+        }
+    }
 }
