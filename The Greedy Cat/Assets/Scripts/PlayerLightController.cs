@@ -1,13 +1,9 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 using UnityEngine.Rendering.Universal;
 
 public class PlayerLightController : MonoBehaviour
 {
-    // Non ha più bisogno di stare sul player
-    // Va attaccato a un GameObject della UI persistente (es. il GameManager o il Canvas)
-
     private bool isLightOn = false;
     public bool IsLightOn => isLightOn;
 
@@ -33,14 +29,12 @@ public class PlayerLightController : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Resetta la luce ogni volta che si carica un nuovo livello
         isLightOn = false;
         GestisciMeccanicaEInterfaccia();
     }
 
     private void OnSceneUnloaded(Scene scene)
     {
-        // Ricalcola UI anche quando una scena viene scaricata (fix problema LVL_01 dopo LVL_02)
         GestisciMeccanicaEInterfaccia();
     }
 
@@ -61,7 +55,6 @@ public class PlayerLightController : MonoBehaviour
         if (toggleLightButton != null)
             toggleLightButton.SetActive(inLivelloConsentito);
 
-        // Aggiorna la luce sul player corrente (cercato dinamicamente)
         AggiornaLuceSuPlayer();
     }
 
@@ -74,7 +67,6 @@ public class PlayerLightController : MonoBehaviour
 
     public void AggiornaLuceSuPlayer()
     {
-        // Cerca sempre il player corrente in scena, funziona anche dopo il respawn
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj == null) return;
 

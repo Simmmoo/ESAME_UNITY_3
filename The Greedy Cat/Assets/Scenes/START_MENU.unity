@@ -2729,7 +2729,7 @@ GameObject:
   - component: {fileID: 560422779}
   - component: {fileID: 560422780}
   m_Layer: 5
-  m_Name: UI_Game
+  m_Name: PNL_Game
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7801,7 +7801,7 @@ GameObject:
   - component: {fileID: 1673326767}
   - component: {fileID: 1673326766}
   m_Layer: 5
-  m_Name: CANVAS
+  m_Name: UI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8796,7 +8796,7 @@ GameObject:
   - component: {fileID: 2109935647}
   - component: {fileID: 2109935649}
   m_Layer: 5
-  m_Name: Menu_Start
+  m_Name: PNL_Start
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
