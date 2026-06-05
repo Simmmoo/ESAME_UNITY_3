@@ -35,13 +35,16 @@ public class MouseManager : MonoBehaviour
         if (playerObj != null)
             playerTransform = playerObj.transform;
 
-        // Cerca PlayerLightController nella scena, non più sul player
         playerLightController = FindFirstObjectByType<PlayerLightController>();
+    }
+
+    public void AggiornaRiferimentoPlayer(Transform nuovoPlayer)
+    {
+        playerTransform = nuovoPlayer;
     }
 
     void Update()
     {
-        // Se il player è stato distrutto e respawnato, aggiorna i riferimenti
         if (playerTransform == null)
         {
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
@@ -50,7 +53,6 @@ public class MouseManager : MonoBehaviour
         }
 
         bool isPlayerLightOn = (playerLightController != null && playerLightController.IsLightOn);
-        Debug.Log("LightController: " + playerLightController + " | IsLightOn: " + isPlayerLightOn);
 
         if (isPlayerLightOn && playerTransform != null)
         {
@@ -106,13 +108,15 @@ public class MouseManager : MonoBehaviour
 
         if (player != null)
         {
-            player.Die();
+            Vector3 deathPosition = player.transform.position;
 
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.deathCount += damage;
-                GameManager.Instance.RespawnPlayer();
+                GameManager.Instance.RespawnPlayer(deathPosition);
             }
+
+            player.Die();
         }
     }
 }

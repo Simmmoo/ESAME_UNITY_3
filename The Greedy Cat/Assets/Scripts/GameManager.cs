@@ -6,16 +6,14 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-
-
 public class GameManager : MonoBehaviour
-
 {
     public static GameManager Instance;
 
     [Header("Player")]
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private Transform respawnPoint;
+    [SerializeField] public GameObject playerObject;
     public PlayerController player;
     public float respawnDelay;
 
@@ -25,9 +23,8 @@ public class GameManager : MonoBehaviour
     public GameObject myCinemachine;
 
     [Header("Death Count")]
-    public int deathCount = 0; // Conta le morti del player
-    public Image[] lifeIcons; // Array di immagini per le vite
-
+    public int deathCount = 0;
+    public Image[] lifeIcons;
 
     [Header("UI")]
     public GameObject gameOverPanel;
@@ -36,7 +33,6 @@ public class GameManager : MonoBehaviour
     [Header("Effects")]
     public GameObject deathParticlesPrefab;
 
-
     [Header("Audio")]
     public AudioSource musicSource;
     private AudioMusic audioMusic;
@@ -44,48 +40,35 @@ public class GameManager : MonoBehaviour
     [System.Obsolete]
     public void Awake()
     {
-
         if (Instance == null)
-
-        {
             Instance = this;
-        }
         else
-        {
             Destroy(gameObject);
-        }
 
         audioMusic = Object.FindFirstObjectByType<AudioMusic>();
     }
 
     private void Update()
-
     {
         MySnacksText.text = SnackPoint.ToString() + "/4";
     }
 
     public void SetCheckpoint(Transform newCheckpoint)
-
     {
-        respawnPoint = newCheckpoint; // Aggiorna l'ultimo checkpoint raggiunto
+        respawnPoint = newCheckpoint;
     }
 
-    public void RespawnPlayer()
-
+    public void RespawnPlayer(Vector3 deathPosition)
     {
         if (deathCount < 9)
-
         {
             ReduceLifeOpacity();
 
-            if (deathParticlesPrefab != null && player != null)
+            if (deathParticlesPrefab != null)
+                Instantiate(deathParticlesPrefab, deathPosition, Quaternion.identity);
 
-            {
-                Instantiate(deathParticlesPrefab, player.transform.position, Quaternion.identity);
-            }
             StartCoroutine(RespawnCoroutine());
         }
-
         else
         {
             gameOverPanel.SetActive(true);
@@ -95,18 +78,41 @@ public class GameManager : MonoBehaviour
     private IEnumerator RespawnCoroutine()
     {
         yield return new WaitForSeconds(respawnDelay);
+
+        if (respawnPoint == null)
+        {
+            SpawnPoint puntoDiSpawn = FindFirstObjectByType<SpawnPoint>();
+            if (puntoDiSpawn != null)
+                respawnPoint = puntoDiSpawn.transform;
+            else
+            {
+                Debug.LogWarning("RespawnCoroutine: nessun SpawnPoint trovato in scena!");
+                yield break;
+            }
+        }
+
         GameObject newPlayer = Instantiate(playerPrefab, respawnPoint.position, Quaternion.identity);
         player = newPlayer.GetComponent<PlayerController>();
         myCinemachine.GetComponent<CinemachineVirtualCamera>().Follow = player.transform;
 
-        // Reapplica lo stato della luce sul nuovo player appena spawnato
+        // Aggiorna riferimento player nel FireworksManager se presente
+        FireworksManager fireworks = FindFirstObjectByType<FireworksManager>();
+        if (fireworks != null)
+            fireworks.AggiornaRiferimentoPlayer(player);
+
+        // Aggiorna riferimento player nel MouseManager se presente
+        MouseManager mouse = FindFirstObjectByType<MouseManager>();
+        if (mouse != null)
+            mouse.AggiornaRiferimentoPlayer(player.transform);
+
         PlayerLightController lightController = FindFirstObjectByType<PlayerLightController>();
         if (lightController != null)
             lightController.AggiornaLuceSuPlayer();
+
+
     }
 
     private void ReduceLifeOpacity()
-
     {
         if (deathCount <= lifeIcons.Length || deathCount >= lifeIcons.Length)
         {
@@ -117,11 +123,6 @@ public class GameManager : MonoBehaviour
         }
     }
 
-
-
-    // --- LOGICA SELEZIONE LIVELLI CON SPOSTAMENTO PLAYER ---
-
-    // Questa funzione viene attivata dal tasto "LVL 01"
     // --- LOGICA SELEZIONE LIVELLI ---
 
     public void SelezionaLivello1()
@@ -131,7 +132,6 @@ public class GameManager : MonoBehaviour
 
     public void SelezionaLivello2()
     {
-        // Richiede che il livello 2 sia stato sbloccato
         int highestUnlocked = PlayerPrefs.GetInt("HighestLevelUnlocked", 1);
         if (highestUnlocked >= 2)
             CaricaLivelloSelezionato("LVL_02", 2);
@@ -152,28 +152,26 @@ public class GameManager : MonoBehaviour
     {
         Time.timeScale = 1f;
 
-        // Scarica tutte le scene additive aperte tranne START_MENU
         for (int i = 0; i < SceneManager.sceneCount; i++)
         {
             Scene scenaCorrente = SceneManager.GetSceneAt(i);
             if (scenaCorrente.name != "START_MENU")
-            {
                 SceneManager.UnloadSceneAsync(scenaCorrente.buildIndex);
-            }
         }
 
-        // Carica la nuova scena e sposta il player solo dopo che è pronta
         StartCoroutine(CaricaESpawna(nomeLivello));
     }
 
     private IEnumerator CaricaESpawna(string nomeLivello)
     {
         AsyncOperation op = SceneManager.LoadSceneAsync(nomeLivello, LoadSceneMode.Additive);
-
-        // Aspetta che la scena sia completamente caricata
         yield return new WaitUntil(() => op.isDone);
+        yield return null;
 
-        // Ora cerca SpawnPoint e Player nella scena appena caricata
+        // Riattiva il player se è disattivato
+        if (playerObject != null && !playerObject.activeSelf)
+            playerObject.SetActive(true);
+
         SpawnPoint puntoDiSpawn = FindFirstObjectByType<SpawnPoint>();
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
 
@@ -184,6 +182,9 @@ public class GameManager : MonoBehaviour
             Rigidbody2D rb = playerObj.GetComponent<Rigidbody2D>();
             if (rb != null) rb.linearVelocity = Vector2.zero;
 
+            player = playerObj.GetComponent<PlayerController>();
+            respawnPoint = puntoDiSpawn.transform;
+
             Debug.Log("Player spawnato in: " + nomeLivello);
         }
         else
@@ -192,11 +193,10 @@ public class GameManager : MonoBehaviour
             if (puntoDiSpawn == null) Debug.LogWarning("SpawnPoint non trovato in: " + nomeLivello);
         }
     }
+
     public void AddPoints()
     {
-        {
-            SnackPoint++;
-        }
+        SnackPoint++;
     }
 
     public void CheckVictory()
@@ -204,7 +204,8 @@ public class GameManager : MonoBehaviour
         if (SnackPoint >= 4)
         {
             Debug.Log("Hai vinto");
-            if (victoryPanel.GetComponentInParent<CanvasGroup>() != null) victoryPanel.GetComponentInParent<CanvasGroup>().alpha = 1;
+            if (victoryPanel.GetComponentInParent<CanvasGroup>() != null)
+                victoryPanel.GetComponentInParent<CanvasGroup>().alpha = 1;
             victoryPanel.SetActive(true);
             Debug.Log("Si attiva il panel");
         }
@@ -212,14 +213,12 @@ public class GameManager : MonoBehaviour
 
     // --- LOGICA PAUSA ---
 
-    // Mette il gioco in pausa 
     public void Pausa()
     {
         Time.timeScale = 0f;
         Debug.Log("Gioco in Pausa");
     }
 
-    // Fà riprendere il gioco normalmente
     public void SbloccaGioco()
     {
         Time.timeScale = 1f;
@@ -230,20 +229,25 @@ public class GameManager : MonoBehaviour
     {
         Time.timeScale = 1f;
 
-        // Disattiva il player prima di scaricare la scena
-        if (player != null)
-            player.gameObject.SetActive(false);
+        // Distruggi il player istanziato se è diverso dal playerObject originale
+        if (player != null && player.gameObject != playerObject)
+            Destroy(player.gameObject);
+
+        // Disattiva il player originale nella Hierarchy
+        if (playerObject != null)
+            playerObject.SetActive(false);
 
         for (int i = 0; i < SceneManager.sceneCount; i++)
         {
             Scene scena = SceneManager.GetSceneAt(i);
             if (scena.name != "START_MENU")
-            {
                 SceneManager.UnloadSceneAsync(scena.buildIndex);
-            }
         }
 
-        // Ripristina il menu iniziale
+        // Resetta il riferimento al player
+        player = null;
+        respawnPoint = null;
+
         ChangeScene changeScene = FindFirstObjectByType<ChangeScene>();
         if (changeScene != null)
         {

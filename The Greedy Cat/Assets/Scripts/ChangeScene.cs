@@ -12,7 +12,7 @@ public class ChangeScene : MonoBehaviour
     public CanvasGroup startScreenCanvasGrp;
     public Image fadePanel;
 
-    [SerializeField] GameObject player;
+
     private void Start()
     {
         if (fadeCanvasImage != null)
@@ -67,12 +67,36 @@ public class ChangeScene : MonoBehaviour
 
     public void LoadGame()
     {
-        SceneManager.LoadScene("LVL_01", LoadSceneMode.Additive);
+        StartCoroutine(LoadGameCoroutine());
+    }
+
+    private IEnumerator LoadGameCoroutine()
+    {
+        // Scarica tutti i livelli additivi e aspetta che siano effettivamente scaricati
+        List<AsyncOperation> unloadOps = new List<AsyncOperation>();
+
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            Scene scena = SceneManager.GetSceneAt(i);
+            if (scena.name != "START_MENU")
+                unloadOps.Add(SceneManager.UnloadSceneAsync(scena.buildIndex));
+        }
+
+        // Aspetta che tutti gli scaricamenti siano completati
+        foreach (AsyncOperation op in unloadOps)
+        {
+            if (op != null)
+                yield return new WaitUntil(() => op.isDone);
+        }
+
         startScreenCanvasGrp.alpha = 0;
+        startScreenCanvasGrp.blocksRaycasts = false;
         fadePanel.color = new Color(0, 0, 0, 0);
         fadePanel.gameObject.SetActive(false);
-        startScreenCanvasGrp.blocksRaycasts = false;
-        player.SetActive(true);
+
+        // Solo ora carica LVL_01, quando la memoria è pulita
+        if (GameManager.Instance != null)
+            GameManager.Instance.SelezionaLivello1();
     }
     public void LoadSpecificLevel(string levelName) => SceneManager.LoadScene(levelName);
     public void QuitGame() { Application.Quit(); Debug.Log("Quit"); }

@@ -36,16 +36,17 @@ public class SpiderManager : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D collision)
     {
         PlayerController player = collision.gameObject.GetComponent<PlayerController>();
-
         if (player != null)
         {
-            player.Die();
+            Vector3 deathPosition = player.transform.position;
 
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.deathCount += damage;
-                GameManager.Instance.RespawnPlayer();
+                GameManager.Instance.RespawnPlayer(deathPosition);
             }
+
+            player.Die();
         }
     }
 }

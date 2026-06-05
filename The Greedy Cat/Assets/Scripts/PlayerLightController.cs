@@ -65,6 +65,13 @@ public class PlayerLightController : MonoBehaviour
         Debug.Log("Luce: " + (isLightOn ? "ACCESA" : "SPENTA"));
     }
 
+    public void ResetLuce()
+    {
+        isLightOn = false;
+        AggiornaLuceSuPlayer();
+        GestisciMeccanicaEInterfaccia();
+    }
+
     public void AggiornaLuceSuPlayer()
     {
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
