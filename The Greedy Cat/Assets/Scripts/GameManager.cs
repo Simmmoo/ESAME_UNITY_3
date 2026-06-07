@@ -44,6 +44,7 @@ public class GameManager : MonoBehaviour
     private AudioMusic audioMusic;
 
     [NonSerialized] public UnityEvent evt_PlayerDied;
+    [NonSerialized] public UnityEvent evt_gameOver;
 
     [System.Obsolete]
     public void Awake()
@@ -62,9 +63,10 @@ public class GameManager : MonoBehaviour
         audioMusic = UnityEngine.Object.FindFirstObjectByType<AudioMusic>();
     }
 
-    private void Start()
+    private void OnEnable()
     {
         evt_PlayerDied = new UnityEvent();
+        evt_gameOver = new UnityEvent();
 
     }
 
@@ -83,25 +85,17 @@ public class GameManager : MonoBehaviour
     public void RespawnPlayer()
 
     {
-        if (deathCount < 9)
+        ReduceLifeOpacity();
+
+        if (deathParticlesPrefab != null && player != null)
 
         {
-            ReduceLifeOpacity();
-
-            if (deathParticlesPrefab != null && player != null)
-
-            {
-                Instantiate(deathParticlesPrefab, player.transform.position, Quaternion.identity);
-            }
-            StartCoroutine(RespawnCoroutine());
+            Instantiate(deathParticlesPrefab, player.transform.position, Quaternion.identity);
         }
+        StartCoroutine(RespawnCoroutine());
 
-        else
-        {
-            gameOverPanel.SetActive(true);
-            StartCoroutine(RespawnCoroutine());
-            player.gameObject.SetActive(false);
-        }
+
+
     }
 
     private IEnumerator RespawnCoroutine()
@@ -111,9 +105,18 @@ public class GameManager : MonoBehaviour
         GameObject newPlayer = Instantiate(playerPrefab, respawnPoint.position, Quaternion.identity);
         player = newPlayer.GetComponent<PlayerController>();
         GetComponent<PlayerLightController>().playerLight = player.GetComponentInChildren<Light2D>();
-        GetComponent<PlayerLightController>().ToggleLight();
+        GetComponent<PlayerLightController>().ResetLight();
         myCinemachine.GetComponent<CinemachineVirtualCamera>().Follow = player.transform;
         evt_PlayerDied.Invoke();
+        if (deathCount >= 9)
+        {
+            //GAME OVER SEQUENCE
+            gameOverPanel.SetActive(true);
+            player.gameObject.SetActive(false);
+            deathCount = 0;
+            foreach(Image icon in lifeIcons) icon.color = Color.white;
+            evt_gameOver.Invoke();
+        }
     }
 
     private void ReduceLifeOpacity()

@@ -85,4 +85,9 @@ public class PlayerLightController : MonoBehaviour
             Debug.Log("Luce del player: " + (isLightOn ? "ACCESA" : "SPENTA"));
         }
     }
+    public void ResetLight()
+    {
+        isLightOn = false;
+        playerLight.enabled = false;
+    }
 }

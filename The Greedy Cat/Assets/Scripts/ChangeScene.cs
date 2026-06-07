@@ -16,7 +16,20 @@ public class ChangeScene : MonoBehaviour
     [SerializeField] GameObject player;
 
     [SerializeField] Transform[] startPositions;
+    [SerializeField] GameManager myGameManager;
+  
+    private void OnEnable()
+    {
+        Debug.Log("CHIAMATA ON ENABLE IN CHANGE SCENE");
+        myGameManager.evt_PlayerDied.AddListener(ReassignPlayer);
+        myGameManager.evt_gameOver.AddListener(ResetScenes);
+    }
 
+    private void OnDisable()
+    {
+        myGameManager.evt_PlayerDied.RemoveListener(ReassignPlayer);
+        myGameManager.evt_gameOver.RemoveListener(ResetScenes);
+    }
     private void Start()
     {
         if (fadeCanvasImage != null)
@@ -25,7 +38,16 @@ public class ChangeScene : MonoBehaviour
             fadeCanvasImage.color = new Color(0, 0, 0, 0);
         }
     }
+    void ReassignPlayer()
+    {
+        player = myGameManager.player.gameObject;
+    }
 
+    void ResetScenes()
+    {
+        UnloadGame();
+        currentScene = "";
+    }
     public void StartLevelTransition()
     {
         StartCoroutine(FadeAndLoadNextLevel());
@@ -84,7 +106,7 @@ public class ChangeScene : MonoBehaviour
 
     public void UnloadGame()
     {
-        if(currentScene != "") SceneManager.UnloadSceneAsync(currentScene);
+        if (currentScene != "") SceneManager.UnloadSceneAsync(currentScene);
     }
 
     public void LoadSpecificLevel(string levelName)
