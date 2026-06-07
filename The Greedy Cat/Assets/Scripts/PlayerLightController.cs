@@ -1,39 +1,40 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.UI;
+using UnityEngine.Rendering.Universal; // Obbligatorio per gestire Light2D
 
 public class PlayerLightController : MonoBehaviour
 {
+    private Light2D playerLight;
     private bool isLightOn = false;
     public bool IsLightOn => isLightOn;
 
     [Header("Riferimento UI")]
-    [SerializeField] private GameObject toggleLightButton;
+    [SerializeField] private GameObject toggleLightButton; // Il pulsante della luce da nascondere/mostrare
+
+    private void Awake()
+    {
+        // Trova automaticamente la luce 2D posizionata sotto il gatto
+        playerLight = GetComponentInChildren<Light2D>();
+    }
 
     private void OnEnable()
     {
+        // Ascolta quando viene caricata una nuova scena (essenziale per il caricamento Additivo)
         SceneManager.sceneLoaded += OnSceneLoaded;
-        SceneManager.sceneUnloaded += OnSceneUnloaded;
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
-        SceneManager.sceneUnloaded -= OnSceneUnloaded;
-    }
-
-    private void Start()
-    {
-        GestisciMeccanicaEInterfaccia();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        isLightOn = false;
         GestisciMeccanicaEInterfaccia();
     }
 
-    private void OnSceneUnloaded(Scene scene)
+    private void Start()
     {
         GestisciMeccanicaEInterfaccia();
     }
@@ -42,6 +43,7 @@ public class PlayerLightController : MonoBehaviour
     {
         bool inLivelloConsentito = false;
 
+        // Controlla se tra le scene attualmente caricate c'è il LVL_02 o il LVL_03
         for (int i = 0; i < SceneManager.sceneCount; i++)
         {
             string nomeScena = SceneManager.GetSceneAt(i).name;
@@ -52,33 +54,35 @@ public class PlayerLightController : MonoBehaviour
             }
         }
 
+        // Mostra il pulsante UI solo se siamo nel livello 2 o 3, altrimenti lo nasconde
         if (toggleLightButton != null)
+        {
             toggleLightButton.SetActive(inLivelloConsentito);
+        }
 
-        AggiornaLuceSuPlayer();
+        // Se siamo nel livello 1 (o menu), spegne forzatamente la luce sul gatto
+        if (playerLight != null)
+        {
+            if (!inLivelloConsentito)
+            {
+                isLightOn = false;
+                playerLight.enabled = false;
+            }
+            else
+            {
+                playerLight.enabled = isLightOn;
+            }
+        }
     }
 
+    // Funzione da collegare al click del pulsante UI
     public void ToggleLight()
     {
-        isLightOn = !isLightOn;
-        AggiornaLuceSuPlayer();
-        Debug.Log("Luce: " + (isLightOn ? "ACCESA" : "SPENTA"));
-    }
-
-    public void ResetLuce()
-    {
-        isLightOn = false;
-        AggiornaLuceSuPlayer();
-        GestisciMeccanicaEInterfaccia();
-    }
-
-    public void AggiornaLuceSuPlayer()
-    {
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj == null) return;
-
-        Light2D luce = playerObj.GetComponentInChildren<Light2D>();
-        if (luce != null)
-            luce.enabled = isLightOn;
+        if (playerLight != null)
+        {
+            isLightOn = !isLightOn; // Inverte lo stato (se è accesa spegne, se è spenta accende)
+            playerLight.enabled = isLightOn;
+            Debug.Log("Luce del player: " + (isLightOn ? "ACCESA" : "SPENTA"));
+        }
     }
 }

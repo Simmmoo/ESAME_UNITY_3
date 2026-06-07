@@ -12,7 +12,7 @@ public class MouseManager : MonoBehaviour
     [Header("Inseguimento (Luce Accesa)")]
     public float chaseSpeed = 4f;
     [Tooltip("Soglia di tolleranza per evitare il tremolio quando il topo e' quasi allineato al gatto")]
-    public float tolleranzaX = 0.2f;
+    public float tolleranzaX = 0.2f; // Se la distanza X e' minore di 0.2, il topo si stabilizza
 
     [Header("Combattimento")]
     public int damage = 1;
@@ -33,53 +33,54 @@ public class MouseManager : MonoBehaviour
 
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null)
+        {
             playerTransform = playerObj.transform;
-
-        playerLightController = FindFirstObjectByType<PlayerLightController>();
-    }
-
-    public void AggiornaRiferimentoPlayer(Transform nuovoPlayer)
-    {
-        playerTransform = nuovoPlayer;
+            playerLightController = playerObj.GetComponent<PlayerLightController>();
+        }
     }
 
     void Update()
     {
-        if (playerTransform == null)
-        {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-                playerTransform = playerObj.transform;
-        }
-
         bool isPlayerLightOn = (playerLightController != null && playerLightController.IsLightOn);
 
         if (isPlayerLightOn && playerTransform != null)
         {
             // --- INSEGUIMENTO (LUCE ACCESA) ---
+
+            // Calcoliamo la distanza effettiva tra il topo e il gatto sull'asse X
             float distanzaDizionaleX = playerTransform.position.x - transform.position.x;
 
+            // Se la distanza e' maggiore della tolleranza, il topo si muove
             if (Mathf.Abs(distanzaDizionaleX) > tolleranzaX)
             {
                 float directionX = Mathf.Sign(distanzaDizionaleX);
+
+                // Muove il topo
                 transform.position += new Vector3(directionX * chaseSpeed * Time.deltaTime, 0, 0);
 
+                // Aggiorna lo sprite basandosi sulla direzione effettiva di movimento
                 if (spriteRenderer != null)
                 {
                     spriteRenderer.flipX = (directionX < 0);
                     currentDirection = directionX > 0 ? 1 : -1;
                 }
             }
+            // Se la distanza rientra nella tolleranza, il topo si ferma immobile sotto/sopra il gatto,
+            // evitando i micro-scatti ma continuando a guardarlo coerentemente
             else
             {
                 if (spriteRenderer != null)
                 {
                     float direzioneSguardo = Mathf.Sign(distanzaDizionaleX);
+                    // Evita di cambiare flip se siamo praticamente a zero spaccato
                     if (Mathf.Abs(distanzaDizionaleX) > 0.01f)
+                    {
                         spriteRenderer.flipX = (direzioneSguardo < 0);
+                    }
                 }
             }
 
+            // Mantiene aggiornata la posizione di pattuglia dinamica per quando si spegnera' la luce
             startPos = transform.position;
             traveledDistance = 0f;
         }
@@ -98,7 +99,9 @@ public class MouseManager : MonoBehaviour
             }
 
             if (spriteRenderer != null)
+            {
                 spriteRenderer.flipX = (currentDirection < 0);
+            }
         }
     }
 
@@ -108,15 +111,13 @@ public class MouseManager : MonoBehaviour
 
         if (player != null)
         {
-            Vector3 deathPosition = player.transform.position;
+            player.Die();
 
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.deathCount += damage;
-                GameManager.Instance.RespawnPlayer(deathPosition);
+                GameManager.Instance.RespawnPlayer();
             }
-
-            player.Die();
         }
     }
 }

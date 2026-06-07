@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -12,6 +13,9 @@ public class ChangeScene : MonoBehaviour
     public CanvasGroup startScreenCanvasGrp;
     public Image fadePanel;
 
+    [SerializeField] GameObject player;
+
+    [SerializeField] Transform[] startPositions;
 
     private void Start()
     {
@@ -65,40 +69,34 @@ public class ChangeScene : MonoBehaviour
 
     //public void LoadGame() => SceneManager.LoadScene("LVL_01", LoadSceneMode.Additive);
 
+    string currentScene = "";
     public void LoadGame()
     {
-        StartCoroutine(LoadGameCoroutine());
-    }
-
-    private IEnumerator LoadGameCoroutine()
-    {
-        // Scarica tutti i livelli additivi e aspetta che siano effettivamente scaricati
-        List<AsyncOperation> unloadOps = new List<AsyncOperation>();
-
-        for (int i = 0; i < SceneManager.sceneCount; i++)
-        {
-            Scene scena = SceneManager.GetSceneAt(i);
-            if (scena.name != "START_MENU")
-                unloadOps.Add(SceneManager.UnloadSceneAsync(scena.buildIndex));
-        }
-
-        // Aspetta che tutti gli scaricamenti siano completati
-        foreach (AsyncOperation op in unloadOps)
-        {
-            if (op != null)
-                yield return new WaitUntil(() => op.isDone);
-        }
-
+        SceneManager.LoadScene("LVL_01", LoadSceneMode.Additive);
+        currentScene = "LVL_01";
         startScreenCanvasGrp.alpha = 0;
-        startScreenCanvasGrp.blocksRaycasts = false;
         fadePanel.color = new Color(0, 0, 0, 0);
         fadePanel.gameObject.SetActive(false);
-
-        // Solo ora carica LVL_01, quando la memoria è pulita
-        if (GameManager.Instance != null)
-            GameManager.Instance.SelezionaLivello1();
+        startScreenCanvasGrp.blocksRaycasts = false;
+        player.transform.position = startPositions[0].position;
+        player.SetActive(true);
     }
-    public void LoadSpecificLevel(string levelName) => SceneManager.LoadScene(levelName);
+
+    public void UnloadGame()
+    {
+        if(currentScene != "") SceneManager.UnloadSceneAsync(currentScene);
+    }
+
+    public void LoadSpecificLevel(string levelName)
+    {
+        UnloadGame();
+        currentScene = levelName;
+
+        player.transform.position = startPositions[int.Parse(currentScene.Split('0')[1]) - 1].position;
+
+        SceneManager.LoadScene(levelName, LoadSceneMode.Additive);
+
+    }
     public void QuitGame() { Application.Quit(); Debug.Log("Quit"); }
     public void ExitGame() => SceneManager.LoadScene("START_MENU");
 }
