@@ -5,7 +5,7 @@ using UnityEngine.Rendering.Universal; // Obbligatorio per gestire Light2D
 
 public class PlayerLightController : MonoBehaviour
 {
-    private Light2D playerLight;
+    public Light2D playerLight;
     private bool isLightOn = false;
     public bool IsLightOn => isLightOn;
 
@@ -15,7 +15,7 @@ public class PlayerLightController : MonoBehaviour
     private void Awake()
     {
         // Trova automaticamente la luce 2D posizionata sotto il gatto
-        playerLight = GetComponentInChildren<Light2D>();
+        //playerLight = GetComponentInChildren<Light2D>();
     }
 
     private void OnEnable()

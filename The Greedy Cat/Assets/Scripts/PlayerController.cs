@@ -237,7 +237,11 @@ public class PlayerController : MonoBehaviour
         anim.SetBool("IsPushing", isPushing);
     }
 
-    public void Die() => Destroy(gameObject);
+    public void Die()
+    {
+
+        Destroy(gameObject);
+    }
     void PlayJumpSound() { if (audioSource != null && jumpSound != null) audioSource.PlayOneShot(jumpSound); }
     void PlayMeow() { if (audioSource != null && meow != null) audioSource.PlayOneShot(meow); }
 

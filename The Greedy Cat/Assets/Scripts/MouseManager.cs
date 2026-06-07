@@ -26,6 +26,14 @@ public class MouseManager : MonoBehaviour
     private int currentDirection = 1;
     private float traveledDistance = 0f;
 
+    private void OnEnable()
+    {
+        GameObject.FindGameObjectWithTag("GameManager").GetComponent<GameManager>().evt_PlayerDied.AddListener(OnPlayerDead);
+    }
+    private void OnApplicationQuit()
+    {
+        GameObject.FindGameObjectWithTag("GameManager").GetComponent<GameManager>().evt_PlayerDied.RemoveListener(OnPlayerDead);
+    }
     void Start()
     {
         startPos = transform.position;
@@ -35,14 +43,16 @@ public class MouseManager : MonoBehaviour
         if (playerObj != null)
         {
             playerTransform = playerObj.transform;
-            playerLightController = playerObj.GetComponent<PlayerLightController>();
         }
+        GameObject GM = GameObject.FindGameObjectWithTag("GameManager");
+        if(GM != null) playerLightController = GM.GetComponent<PlayerLightController>();
+
+
     }
 
     void Update()
     {
         bool isPlayerLightOn = (playerLightController != null && playerLightController.IsLightOn);
-
         if (isPlayerLightOn && playerTransform != null)
         {
             // --- INSEGUIMENTO (LUCE ACCESA) ---
@@ -103,6 +113,20 @@ public class MouseManager : MonoBehaviour
                 spriteRenderer.flipX = (currentDirection < 0);
             }
         }
+    }
+
+
+    void OnPlayerDead()
+    {
+        Debug.Log("Ricevuto evento");
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+        {
+            playerTransform = playerObj.transform;
+        }
+        GameObject GM = GameObject.FindGameObjectWithTag("GameManager");
+        if (GM != null) playerLightController = GM.GetComponent<PlayerLightController>();
+
     }
 
     private void OnTriggerEnter2D(Collider2D collision)

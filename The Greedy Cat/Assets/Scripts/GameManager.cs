@@ -1,8 +1,11 @@
 using Cinemachine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 
@@ -40,6 +43,8 @@ public class GameManager : MonoBehaviour
     public AudioSource musicSource;
     private AudioMusic audioMusic;
 
+    [NonSerialized] public UnityEvent evt_PlayerDied;
+
     [System.Obsolete]
     public void Awake()
     {
@@ -54,7 +59,13 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
         }
 
-        audioMusic = Object.FindFirstObjectByType<AudioMusic>();
+        audioMusic = UnityEngine.Object.FindFirstObjectByType<AudioMusic>();
+    }
+
+    private void Start()
+    {
+        evt_PlayerDied = new UnityEvent();
+
     }
 
     private void Update()
@@ -88,6 +99,8 @@ public class GameManager : MonoBehaviour
         else
         {
             gameOverPanel.SetActive(true);
+            StartCoroutine(RespawnCoroutine());
+            player.gameObject.SetActive(false);
         }
     }
 
@@ -97,7 +110,10 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(respawnDelay);
         GameObject newPlayer = Instantiate(playerPrefab, respawnPoint.position, Quaternion.identity);
         player = newPlayer.GetComponent<PlayerController>();
+        GetComponent<PlayerLightController>().playerLight = player.GetComponentInChildren<Light2D>();
+        GetComponent<PlayerLightController>().ToggleLight();
         myCinemachine.GetComponent<CinemachineVirtualCamera>().Follow = player.transform;
+        evt_PlayerDied.Invoke();
     }
 
     private void ReduceLifeOpacity()
