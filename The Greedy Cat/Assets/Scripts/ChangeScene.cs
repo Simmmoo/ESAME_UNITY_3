@@ -17,7 +17,7 @@ public class ChangeScene : MonoBehaviour
 
     [SerializeField] Transform[] startPositions;
     [SerializeField] GameManager myGameManager;
-  
+
     private void OnEnable()
     {
         Debug.Log("CHIAMATA ON ENABLE IN CHANGE SCENE");
@@ -43,7 +43,7 @@ public class ChangeScene : MonoBehaviour
         player = myGameManager.player.gameObject;
     }
 
-    void ResetScenes()
+    public void ResetScenes()
     {
         UnloadGame();
         currentScene = "";
