@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.Playables;
 
 public class ChangeScene : MonoBehaviour
 {
@@ -13,10 +14,14 @@ public class ChangeScene : MonoBehaviour
     public CanvasGroup startScreenCanvasGrp;
     public Image fadePanel;
 
-    [SerializeField] GameObject player;
+    [Header("Cinematica")]
+    [SerializeField] private PlayableDirector cinematicDirector;
 
+    [SerializeField] GameObject player;
     [SerializeField] Transform[] startPositions;
     [SerializeField] GameManager myGameManager;
+
+    private bool skipCinematic = false;
 
     private void OnEnable()
     {
@@ -30,6 +35,7 @@ public class ChangeScene : MonoBehaviour
         myGameManager.evt_PlayerDied.RemoveListener(ReassignPlayer);
         myGameManager.evt_gameOver.RemoveListener(ResetScenes);
     }
+
     private void Start()
     {
         if (fadeCanvasImage != null)
@@ -38,6 +44,7 @@ public class ChangeScene : MonoBehaviour
             fadeCanvasImage.color = new Color(0, 0, 0, 0);
         }
     }
+
     void ReassignPlayer()
     {
         player = myGameManager.player.gameObject;
@@ -48,6 +55,7 @@ public class ChangeScene : MonoBehaviour
         UnloadGame();
         currentScene = "";
     }
+
     public void StartLevelTransition()
     {
         StartCoroutine(FadeAndLoadNextLevel());
@@ -59,7 +67,6 @@ public class ChangeScene : MonoBehaviour
         {
             float elapsedTime = 0f;
             Color panelColor = fadeCanvasImage.color;
-
             while (elapsedTime < fadeDuration)
             {
                 elapsedTime += Time.deltaTime;
@@ -89,19 +96,62 @@ public class ChangeScene : MonoBehaviour
         }
     }
 
-    //public void LoadGame() => SceneManager.LoadScene("LVL_01", LoadSceneMode.Additive);
-
     string currentScene = "";
+
     public void LoadGame()
     {
-        SceneManager.LoadScene("LVL_01", LoadSceneMode.Additive);
-        currentScene = "LVL_01";
+        StartCoroutine(PlayCinematicThenLoad());
+    }
+
+    private IEnumerator PlayCinematicThenLoad()
+    {
+        skipCinematic = false;
+
+        // Nascondi la start screen
         startScreenCanvasGrp.alpha = 0;
+        startScreenCanvasGrp.blocksRaycasts = false;
+
+        // Attiva e avvia la cinematica
+        if (cinematicDirector != null)
+        {
+            cinematicDirector.gameObject.SetActive(true);
+
+            bool cinematicFinished = false;
+            cinematicDirector.stopped += _ => {
+                Debug.Log("STOPPED EVENT FIRED");
+                cinematicFinished = true;
+            };
+
+            cinematicDirector.Play();
+            Debug.Log("Cinematic started, state: " + cinematicDirector.state);
+
+            yield return new WaitUntil(() => {
+                Debug.Log("Waiting... state: " + cinematicDirector.state + " | finished: " + cinematicFinished + " | skip: " + skipCinematic);
+                return cinematicFinished || skipCinematic;
+            });
+
+            Debug.Log("Uscito dal WaitUntil");
+
+            if (skipCinematic)
+                cinematicDirector.Stop();
+
+            // Disattiva tutto il GameObject della cinematica (figli compresi)
+            cinematicDirector.gameObject.SetActive(false);
+        }
+
+        // Carica il livello
         fadePanel.color = new Color(0, 0, 0, 0);
         fadePanel.gameObject.SetActive(false);
-        startScreenCanvasGrp.blocksRaycasts = false;
         player.transform.position = startPositions[0].position;
         player.SetActive(true);
+
+        SceneManager.LoadScene("LVL_01", LoadSceneMode.Additive);
+        currentScene = "LVL_01";
+    }
+
+    public void SkipCinematic()
+    {
+        skipCinematic = true;
     }
 
     public void UnloadGame()
@@ -113,12 +163,18 @@ public class ChangeScene : MonoBehaviour
     {
         UnloadGame();
         currentScene = levelName;
-
         player.transform.position = startPositions[int.Parse(currentScene.Split('0')[1]) - 1].position;
-
         SceneManager.LoadScene(levelName, LoadSceneMode.Additive);
-
     }
-    public void QuitGame() { Application.Quit(); Debug.Log("Quit"); }
-    public void ExitGame() => SceneManager.LoadScene("START_MENU");
+
+    public void QuitGame()
+    {
+        Application.Quit();
+        Debug.Log("Quit");
+    }
+
+    public void ExitGame()
+    {
+        SceneManager.LoadScene("START_MENU");
+    }
 }
