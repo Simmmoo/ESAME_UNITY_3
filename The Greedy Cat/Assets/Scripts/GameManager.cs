@@ -45,6 +45,7 @@ public class GameManager : MonoBehaviour
 
     [NonSerialized] public UnityEvent evt_PlayerDied;
     [NonSerialized] public UnityEvent evt_gameOver;
+    [NonSerialized] public UnityEvent evt_Victory;
 
     [System.Obsolete]
     public void Awake()
@@ -67,6 +68,7 @@ public class GameManager : MonoBehaviour
     {
         evt_PlayerDied = new UnityEvent();
         evt_gameOver = new UnityEvent();
+        evt_Victory = new UnityEvent();
 
     }
 
@@ -141,13 +143,13 @@ public class GameManager : MonoBehaviour
 
     public void CheckVictory()
     {
-        if (SnackPoint >= 4)
-        {
-            Debug.Log("Hai vinto");
-            if (victoryPanel.GetComponentInParent<CanvasGroup>() != null) victoryPanel.GetComponentInParent<CanvasGroup>().alpha = 1;
-            victoryPanel.SetActive(true);
-            Debug.Log("Si attiva il panel");
-        }
+        Debug.Log("Hai vinto");
+
+        if (player != null)
+            player.enabled = false;
+
+        if (evt_Victory != null)
+            evt_Victory.Invoke();
     }
 
 }

@@ -21,6 +21,10 @@ public class ChangeScene : MonoBehaviour
     [SerializeField] Transform[] startPositions;
     [SerializeField] GameManager myGameManager;
 
+    [Header("Cinematica Fine Gioco")]
+    [SerializeField] private PlayableDirector endCinematicDirector;
+    [SerializeField] private GameObject pnlGame;
+
     private bool skipCinematic = false;
 
     private void OnEnable()
@@ -28,12 +32,14 @@ public class ChangeScene : MonoBehaviour
         Debug.Log("CHIAMATA ON ENABLE IN CHANGE SCENE");
         myGameManager.evt_PlayerDied.AddListener(ReassignPlayer);
         myGameManager.evt_gameOver.AddListener(ResetScenes);
+        myGameManager.evt_Victory.AddListener(StartEndCinematic); // <-- aggiunto
     }
 
     private void OnDisable()
     {
         myGameManager.evt_PlayerDied.RemoveListener(ReassignPlayer);
         myGameManager.evt_gameOver.RemoveListener(ResetScenes);
+        myGameManager.evt_Victory.RemoveListener(StartEndCinematic); // <-- aggiunto
     }
 
     private void Start()
@@ -48,6 +54,7 @@ public class ChangeScene : MonoBehaviour
     void ReassignPlayer()
     {
         player = myGameManager.player.gameObject;
+        player.SetActive(true);
     }
 
     public void ResetScenes()
@@ -142,8 +149,10 @@ public class ChangeScene : MonoBehaviour
         // Carica il livello
         fadePanel.color = new Color(0, 0, 0, 0);
         fadePanel.gameObject.SetActive(false);
+        player = myGameManager.player.gameObject;
         player.transform.position = startPositions[0].position;
         player.SetActive(true);
+        player.GetComponent<PlayerController>().enabled = true;
 
         SceneManager.LoadScene("LVL_01", LoadSceneMode.Additive);
         currentScene = "LVL_01";
@@ -167,6 +176,74 @@ public class ChangeScene : MonoBehaviour
         SceneManager.LoadScene(levelName, LoadSceneMode.Additive);
     }
 
+    public void StartEndCinematic()
+    {
+        StartCoroutine(PlayEndCinematicThenMenu());
+    }
+
+    private IEnumerator PlayEndCinematicThenMenu()
+    {
+        // Scarica il livello e disattiva il player subito
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            Scene scene = SceneManager.GetSceneAt(i);
+            if (scene.name != "START_MENU" && scene.isLoaded)
+            {
+                SceneManager.UnloadSceneAsync(scene);
+            }
+        }
+        currentScene = "";
+
+        if (player != null)
+            player.SetActive(false);
+        if (pnlGame != null)
+            pnlGame.SetActive(false);
+
+        // Piccola attesa per dare tempo allo scaricamento
+        yield return new WaitForSeconds(0.1f);
+
+        if (endCinematicDirector != null)
+        {
+            endCinematicDirector.gameObject.SetActive(true);
+
+            bool finished = false;
+            endCinematicDirector.stopped += _ => finished = true;
+            endCinematicDirector.Play();
+
+            yield return new WaitUntil(() => finished);
+
+            endCinematicDirector.gameObject.SetActive(false);
+        }
+
+        // Fade to black
+        if (fadeCanvasImage != null)
+        {
+            fadeCanvasImage.gameObject.SetActive(true);
+            float elapsed = 0f;
+            Color c = fadeCanvasImage.color;
+            while (elapsed < fadeDuration)
+            {
+                elapsed += Time.deltaTime;
+                c.a = Mathf.Clamp01(elapsed / fadeDuration);
+                fadeCanvasImage.color = c;
+                yield return null;
+            }
+        }
+
+        // Riattiva la start screen
+        if (startScreenCanvasGrp != null)
+        {
+            startScreenCanvasGrp.gameObject.SetActive(true);
+            startScreenCanvasGrp.alpha = 1;
+            startScreenCanvasGrp.blocksRaycasts = true;
+        }
+
+        // Resetta il fade
+        if (fadeCanvasImage != null)
+        {
+            fadeCanvasImage.color = new Color(0, 0, 0, 0);
+        }
+    }
     public void QuitGame()
     {
         Application.Quit();
