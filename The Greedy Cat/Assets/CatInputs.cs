@@ -238,6 +238,17 @@ public partial class @CatInputs: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
+                    ""id"": ""89a6a470-4602-4a49-bce2-0178672a0041"",
+                    ""path"": ""<Pointer>/press"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Meow"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""6ce9cb2a-7dbc-47e7-9edf-b79351a3764c"",
                     ""path"": ""<Touchscreen>/primaryTouch/position"",
                     ""interactions"": ""Hold"",

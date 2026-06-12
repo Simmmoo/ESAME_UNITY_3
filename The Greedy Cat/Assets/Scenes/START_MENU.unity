@@ -4221,7 +4221,7 @@ GameObject:
   - component: {fileID: 684278600}
   - component: {fileID: 684278599}
   m_Layer: 5
-  m_Name: Start_button
+  m_Name: BTN_Start
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4844,7 +4844,7 @@ GameObject:
   - component: {fileID: 923060827}
   - component: {fileID: 923060826}
   m_Layer: 5
-  m_Name: 'Quit_button '
+  m_Name: BTN_Quit
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5246,7 +5246,7 @@ GameObject:
   - component: {fileID: 944034526}
   - component: {fileID: 944034525}
   m_Layer: 5
-  m_Name: Levels_button
+  m_Name: BTN_Levels
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7916,7 +7916,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 7c3648b2a679f3d40a870832768c35c2, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 0.5
+  m_Volume: 0.292
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -8165,7 +8165,7 @@ GameObject:
   - component: {fileID: 1528357701}
   - component: {fileID: 1528357700}
   m_Layer: 5
-  m_Name: Settings_button
+  m_Name: BTN_Settings
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

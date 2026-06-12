@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 
 public class PlayerController : MonoBehaviour
 {
@@ -93,12 +94,43 @@ public class PlayerController : MonoBehaviour
 
         if (keyboard != null && keyboard.mKey.wasPressedThisFrame) PlayMeow();
 
+        // Tap/click sul Player per il miagolio
+        CheckTapOnPlayer();
+
         // Meccanica Spinta
         if (isObjectDetected && !isPushing && horizontalInput != 0)
         {
             if ((horizontalInput > 0 && FacingDirection == 1) || (horizontalInput < 0 && FacingDirection == -1))
             {
                 PushObject();
+            }
+        }
+    }
+
+    void CheckTapOnPlayer()
+    {
+        if (Pointer.current == null) return;
+
+        if (Pointer.current.press.wasPressedThisFrame)
+        {
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                return;
+
+            Vector2 screenPos = Pointer.current.position.ReadValue();
+            Vector3 worldPos3 = Camera.main.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, Camera.main.transform.position.z * -1));
+            Vector2 worldPos = new Vector2(worldPos3.x, worldPos3.y);
+
+            Debug.Log("Tap a worldPos: " + worldPos);
+
+            Collider2D[] hits = Physics2D.OverlapPointAll(worldPos);
+            foreach (var hit in hits)
+            {
+                Debug.Log("Hit: " + hit.gameObject.name);
+                if (hit.gameObject == gameObject)
+                {
+                    PlayMeow();
+                    break;
+                }
             }
         }
     }
