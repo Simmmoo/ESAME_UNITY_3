@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Cinemachine;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
@@ -8,9 +9,10 @@ using UnityEngine.Playables;
 
 public class ChangeScene : MonoBehaviour
 {
+    public static ChangeScene Instance;
+
     [Header("Impostazioni Fade (Dissolvenza)")]
-    public Image fadeCanvasImage;
-    public float fadeDuration = 1f;
+    public float fadeDuration = 1.2f;
     public CanvasGroup startScreenCanvasGrp;
     public Image fadePanel;
 
@@ -26,6 +28,11 @@ public class ChangeScene : MonoBehaviour
     [SerializeField] private GameObject pnlGame;
 
     private bool skipCinematic = false;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     private void OnEnable()
     {
@@ -44,12 +51,97 @@ public class ChangeScene : MonoBehaviour
 
     private void Start()
     {
-        if (fadeCanvasImage != null)
+        if (fadePanel != null)
         {
-            fadeCanvasImage.gameObject.SetActive(true);
-            fadeCanvasImage.color = new Color(0, 0, 0, 0);
+            fadePanel.color = new Color(0, 0, 0, 0);
+            fadePanel.gameObject.SetActive(false);
         }
     }
+
+    #region Fade helpers
+
+    private IEnumerator FadeOut()
+    {
+        if (fadePanel == null) yield break;
+
+        fadePanel.gameObject.SetActive(true);
+        float elapsed = 0f;
+        Color c = fadePanel.color;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            c.a = Mathf.Clamp01(elapsed / fadeDuration);
+            fadePanel.color = c;
+            yield return null;
+        }
+        c.a = 1;
+        fadePanel.color = c;
+    }
+
+    private IEnumerator FadeIn()
+    {
+        if (fadePanel == null) yield break;
+
+        float elapsed = 0f;
+        Color c = fadePanel.color;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            c.a = 1 - Mathf.Clamp01(elapsed / fadeDuration);
+            fadePanel.color = c;
+            yield return null;
+        }
+        c.a = 0;
+        fadePanel.color = c;
+        fadePanel.gameObject.SetActive(false);
+    }
+
+    // Il fadePanel e' figlio di pnlGame: per poterlo mostrare pnlGame deve essere attivo.
+    // Nasconde pero' esplicitamente tutto il resto (HUD, pulsanti di movimento) cosi'
+    // da non farli comparire mentre siamo fuori dal gameplay vero e proprio.
+    private void SetGameHudVisible(bool visible)
+    {
+        if (pnlGame == null) return;
+        foreach (Transform child in pnlGame.transform)
+        {
+            if (fadePanel != null && child == fadePanel.transform) continue;
+            child.gameObject.SetActive(visible);
+        }
+    }
+
+    // Blocca il gatto (niente input, niente fisica, animazione in idle) per tutta la durata del fade
+    private void FreezePlayer()
+    {
+        PlayerController pc = myGameManager != null ? myGameManager.player : null;
+        if (pc == null) return;
+
+        pc.Freeze();
+    }
+
+    private void UnfreezePlayer()
+    {
+        PlayerController pc = myGameManager != null ? myGameManager.player : null;
+        if (pc == null) return;
+
+        pc.Unfreeze();
+    }
+
+    // La virtual camera ha uno smorzamento sul Follow: se il player viene teletrasportato
+    // (cambio livello/selezione dal menu) la camera ci mette un momento a raggiungerlo,
+    // lasciando il resto del livello fuori inquadratura durante il fade. Qui la agganciamo
+    // subito alla nuova posizione, senza scivolamento.
+    private void SnapCameraToPlayer(Vector3 previousPosition)
+    {
+        if (myGameManager == null || myGameManager.myCinemachine == null || player == null) return;
+
+        CinemachineVirtualCamera vcam = myGameManager.myCinemachine.GetComponent<CinemachineVirtualCamera>();
+        if (vcam == null) return;
+
+        vcam.Follow = player.transform;
+        vcam.OnTargetObjectWarped(player.transform, player.transform.position - previousPosition);
+    }
+
+    #endregion
 
     void ReassignPlayer()
     {
@@ -70,18 +162,9 @@ public class ChangeScene : MonoBehaviour
 
     private IEnumerator FadeAndLoadNextLevel()
     {
-        if (fadeCanvasImage != null)
-        {
-            float elapsedTime = 0f;
-            Color panelColor = fadeCanvasImage.color;
-            while (elapsedTime < fadeDuration)
-            {
-                elapsedTime += Time.deltaTime;
-                panelColor.a = Mathf.Clamp01(elapsedTime / fadeDuration);
-                fadeCanvasImage.color = panelColor;
-                yield return null;
-            }
-        }
+        FreezePlayer();
+
+        yield return StartCoroutine(FadeOut());
 
         int currentLevelIndex = SceneManager.GetActiveScene().buildIndex;
         int nextLevelIndex = currentLevelIndex + 1;
@@ -95,15 +178,57 @@ public class ChangeScene : MonoBehaviour
 
         if (nextLevelIndex < SceneManager.sceneCountInBuildSettings)
         {
-            SceneManager.LoadScene(nextLevelIndex, LoadSceneMode.Additive);
+            yield return SceneManager.LoadSceneAsync(nextLevelIndex, LoadSceneMode.Additive);
         }
         else
         {
             SceneManager.LoadScene("START_MENU");
         }
+
+        yield return StartCoroutine(FadeIn());
+
+        UnfreezePlayer();
     }
 
     string currentScene = "";
+
+    // Passaggio livello in gioco (es. LevelTransitionTrigger): fade to black, cambio scena, fade in.
+    public void FadeToScene(string currentSceneName, string nextSceneName)
+    {
+        StartCoroutine(FadeToSceneCoroutine(currentSceneName, nextSceneName));
+    }
+
+    private IEnumerator FadeToSceneCoroutine(string currentSceneNameToUnload, string nextSceneNameToLoad)
+    {
+        // Se il gatto e' a mezz'aria (es. in salto), aspetta che atterri prima di bloccarlo e far partire il fade
+        PlayerController pc = myGameManager != null ? myGameManager.player : null;
+        if (pc != null)
+        {
+            float waitedTime = 0f;
+            const float maxLandingWait = 2f;
+            while (!pc.isGrounded && waitedTime < maxLandingWait)
+            {
+                waitedTime += Time.deltaTime;
+                yield return null;
+            }
+        }
+
+        FreezePlayer();
+
+        yield return StartCoroutine(FadeOut());
+
+        if (!string.IsNullOrEmpty(nextSceneNameToLoad))
+            yield return SceneManager.LoadSceneAsync(nextSceneNameToLoad, LoadSceneMode.Additive);
+
+        if (!string.IsNullOrEmpty(currentSceneNameToUnload))
+            yield return SceneManager.UnloadSceneAsync(currentSceneNameToUnload);
+
+        currentScene = nextSceneNameToLoad;
+
+        yield return StartCoroutine(FadeIn());
+
+        UnfreezePlayer();
+    }
 
     public void LoadGame()
     {
@@ -113,6 +238,17 @@ public class ChangeScene : MonoBehaviour
     private IEnumerator PlayCinematicThenLoad()
     {
         skipCinematic = false;
+
+        // pnlGame deve essere attivo perche' il fadePanel (suo figlio) sia visibile,
+        // ma la HUD/i pulsanti di movimento restano nascosti finche' il gameplay non e' pronto
+        if (pnlGame != null)
+        {
+            pnlGame.SetActive(true);
+            SetGameHudVisible(false);
+        }
+
+        // Fade to black: copre il passaggio dalla start screen alla cinematica
+        yield return StartCoroutine(FadeOut());
 
         // Nascondi la start screen
         startScreenCanvasGrp.alpha = 0;
@@ -132,6 +268,9 @@ public class ChangeScene : MonoBehaviour
             cinematicDirector.Play();
             Debug.Log("Cinematic started, state: " + cinematicDirector.state);
 
+            // Rivela la cinematica
+            yield return StartCoroutine(FadeIn());
+
             yield return new WaitUntil(() => {
                 Debug.Log("Waiting... state: " + cinematicDirector.state + " | finished: " + cinematicFinished + " | skip: " + skipCinematic);
                 return cinematicFinished || skipCinematic;
@@ -142,20 +281,34 @@ public class ChangeScene : MonoBehaviour
             if (skipCinematic)
                 cinematicDirector.Stop();
 
+            // Fade to black: copre la fine della cinematica
+            yield return StartCoroutine(FadeOut());
+
             // Disattiva tutto il GameObject della cinematica (figli compresi)
             cinematicDirector.gameObject.SetActive(false);
         }
 
-        // Carica il livello
-        fadePanel.color = new Color(0, 0, 0, 0);
-        fadePanel.gameObject.SetActive(false);
+        // Prepara il player e il livello, ancora nascosti dietro al nero
         player = myGameManager.player.gameObject;
+        Vector3 previousPlayerPos = player.transform.position;
         player.transform.position = startPositions[0].position;
         player.SetActive(true);
-        player.GetComponent<PlayerController>().enabled = true;
+        FreezePlayer();
+        SnapCameraToPlayer(previousPlayerPos);
 
-        SceneManager.LoadScene("LVL_01", LoadSceneMode.Additive);
+        if (pnlGame != null)
+        {
+            pnlGame.SetActive(true);
+            SetGameHudVisible(true);
+        }
+
+        yield return SceneManager.LoadSceneAsync("LVL_01", LoadSceneMode.Additive);
         currentScene = "LVL_01";
+
+        // Rivela il gameplay
+        yield return StartCoroutine(FadeIn());
+
+        UnfreezePlayer();
     }
 
     public void SkipCinematic()
@@ -170,9 +323,20 @@ public class ChangeScene : MonoBehaviour
 
     public void LoadSpecificLevel(string levelName)
     {
+        if (pnlGame != null)
+        {
+            pnlGame.SetActive(true);
+            SetGameHudVisible(true);
+        }
+
         UnloadGame();
         currentScene = levelName;
+
+        Vector3 previousPlayerPos = player.transform.position;
         player.transform.position = startPositions[int.Parse(currentScene.Split('0')[1]) - 1].position;
+        player.SetActive(true);
+        SnapCameraToPlayer(previousPlayerPos);
+
         SceneManager.LoadScene(levelName, LoadSceneMode.Additive);
     }
 
@@ -183,7 +347,20 @@ public class ChangeScene : MonoBehaviour
 
     private IEnumerator PlayEndCinematicThenMenu()
     {
-        // Scarica il livello e disattiva il player subito
+        FreezePlayer();
+
+        // pnlGame attivo solo per mostrare il fadePanel: la HUD di gioco resta nascosta,
+        // non dobbiamo piu' tornare al gameplay da qui
+        if (pnlGame != null)
+        {
+            pnlGame.SetActive(true);
+            SetGameHudVisible(false);
+        }
+
+        // Fade to black: copre il taglio tra il gameplay e la cinematica finale
+        yield return StartCoroutine(FadeOut());
+
+        // Scarica il livello e disattiva il player
         for (int i = 0; i < SceneManager.sceneCount; i++)
         {
             Scene scene = SceneManager.GetSceneAt(i);
@@ -196,8 +373,6 @@ public class ChangeScene : MonoBehaviour
 
         if (player != null)
             player.SetActive(false);
-        if (pnlGame != null)
-            pnlGame.SetActive(false);
 
         // Piccola attesa per dare tempo allo scaricamento
         yield return new WaitForSeconds(0.1f);
@@ -210,27 +385,18 @@ public class ChangeScene : MonoBehaviour
             endCinematicDirector.stopped += _ => finished = true;
             endCinematicDirector.Play();
 
+            // Rivela la cinematica finale
+            yield return StartCoroutine(FadeIn());
+
             yield return new WaitUntil(() => finished);
+
+            // Fade to black: copre la fine della cinematica
+            yield return StartCoroutine(FadeOut());
 
             endCinematicDirector.gameObject.SetActive(false);
         }
 
-        // Fade to black
-        if (fadeCanvasImage != null)
-        {
-            fadeCanvasImage.gameObject.SetActive(true);
-            float elapsed = 0f;
-            Color c = fadeCanvasImage.color;
-            while (elapsed < fadeDuration)
-            {
-                elapsed += Time.deltaTime;
-                c.a = Mathf.Clamp01(elapsed / fadeDuration);
-                fadeCanvasImage.color = c;
-                yield return null;
-            }
-        }
-
-        // Riattiva la start screen
+        // Riattiva la start screen (nascosta dietro al nero)
         if (startScreenCanvasGrp != null)
         {
             startScreenCanvasGrp.gameObject.SetActive(true);
@@ -238,12 +404,14 @@ public class ChangeScene : MonoBehaviour
             startScreenCanvasGrp.blocksRaycasts = true;
         }
 
-        // Resetta il fade
-        if (fadeCanvasImage != null)
-        {
-            fadeCanvasImage.color = new Color(0, 0, 0, 0);
-        }
+        // Rivela la start screen
+        yield return StartCoroutine(FadeIn());
+
+        // La partita e' finita: nascondi del tutto pnlGame (HUD + pulsanti di movimento)
+        if (pnlGame != null)
+            pnlGame.SetActive(false);
     }
+
     public void QuitGame()
     {
         Application.Quit();

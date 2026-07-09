@@ -3590,8 +3590,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12237e585b90ce5448a5826eba484d22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fadeCanvasImage: {fileID: 0}
-  fadeDuration: 1
+  fadeDuration: 2
   startScreenCanvasGrp: {fileID: 2109935649}
   fadePanel: {fileID: 21893884}
   cinematicDirector: {fileID: 319352175}

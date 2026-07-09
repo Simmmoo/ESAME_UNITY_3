@@ -195,7 +195,7 @@ public class PlayerController : MonoBehaviour
         isGrounded = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, whatIsGround | pushableLayer);
         isWallDetected = Physics2D.Raycast(transform.position, Vector2.right * FacingDirection, wallCheckDistance, wallLayer);
 
-        // Si attacca solo se in aria, se rileva un muro e se NON è in cooldown
+        // Si attacca solo se in aria, se rileva un muro e se NON ï¿½ in cooldown
         if (!isGrounded && isWallDetected && wallJumpCooldown <= 0)
         {
             isGrabbingWall = true;
@@ -209,7 +209,7 @@ public class PlayerController : MonoBehaviour
 
     void Flip()
     {
-        if (isGrabbingWall) return; // Non girarsi mentre si è appesi
+        if (isGrabbingWall) return; // Non girarsi mentre si ï¿½ appesi
 
         if (horizontalInput > 0 && !FacingRight)
         {
@@ -273,6 +273,42 @@ public class PlayerController : MonoBehaviour
     {
 
         Destroy(gameObject);
+    }
+
+    // Ferma fisica e input e riporta subito l'Animator in idle,
+    // cosi' non resta appeso su un'animazione di salto/camminata durante i fade
+    public void Freeze()
+    {
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0;
+            rb.gravityScale = 0;
+            rb.rotation = 0;
+        }
+        transform.rotation = Quaternion.identity;
+
+        isGrounded = true;
+        isGrabbingWall = false;
+        isPushing = false;
+        horizontalInput = 0;
+
+        if (anim != null)
+        {
+            anim.SetFloat("xVelocity", 0);
+            anim.SetFloat("yVelocity", 0);
+            anim.SetBool("IsGrounded", true);
+            anim.SetBool("isGrabbingWall", false);
+            anim.SetBool("IsPushing", false);
+        }
+
+        enabled = false;
+    }
+
+    public void Unfreeze()
+    {
+        if (rb != null) rb.gravityScale = 1;
+        enabled = true;
     }
     void PlayJumpSound() { if (audioSource != null && jumpSound != null) audioSource.PlayOneShot(jumpSound); }
     void PlayMeow() { if (audioSource != null && meow != null) audioSource.PlayOneShot(meow); }

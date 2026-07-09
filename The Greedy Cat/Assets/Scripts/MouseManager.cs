@@ -18,6 +18,7 @@ public class MouseManager : MonoBehaviour
     public int damage = 1;
 
     [DoNotSerialize] public Vector3 startPos;
+    private Vector3 spawnPos;
 
     private Transform playerTransform;
     private PlayerLightController playerLightController;
@@ -37,6 +38,7 @@ public class MouseManager : MonoBehaviour
     void Start()
     {
         startPos = transform.position;
+        spawnPos = transform.position;
         spriteRenderer = GetComponent<SpriteRenderer>();
 
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
@@ -127,6 +129,15 @@ public class MouseManager : MonoBehaviour
         GameObject GM = GameObject.FindGameObjectWithTag("GameManager");
         if (GM != null) playerLightController = GM.GetComponent<PlayerLightController>();
 
+        // Riporta il topo al suo punto di partenza e resetta il pattugliamento
+        transform.position = spawnPos;
+        startPos = spawnPos;
+        traveledDistance = 0f;
+        currentDirection = 1;
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.flipX = false;
+        }
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
